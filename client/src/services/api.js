@@ -1,8 +1,7 @@
 import axios from 'axios';
 
 // Base API configuration
-const API_URL = 'https://e-commerce-owv6.onrender.com/api';
-
+const API_URL = 'https://e-commerce-owv6.onrender.com/api';  // ← Your Render URL
 
 const api = axios.create({
   baseURL: API_URL,
@@ -38,6 +37,15 @@ api.interceptors.response.use(
 
 export default api;
 
+// Auth Services
+export const authService = {
+  register: (data) => api.post('/auth/register', data),
+  login: (data) => api.post('/auth/login', data),
+  getProfile: () => api.get('/auth/me'),
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token, password) => api.post(`/auth/reset-password/${token}`, { password }),
+};
+
 // Product Services
 export const productService = {
   getAll: (params) => api.get('/products', { params }),
@@ -45,16 +53,6 @@ export const productService = {
   create: (data) => api.post('/products', data),
   update: (id, data) => api.put(`/products/${id}`, data),
   delete: (id) => api.delete(`/products/${id}`),
-  search: (query) => api.get('/products/search', { params: { q: query } }),
-};
-
-// Auth Services
-export const authService = {
-  register: (data) => api.post('/auth/register', data),
-  login: (data) => api.post('/auth/login', data),
-  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
-  resetPassword: (token, password) => api.post(`/auth/reset-password/${token}`, { password }),
-  getProfile: () => api.get('/auth/profile'),
 };
 
 // Cart Services
