@@ -17,23 +17,22 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ====== TEST ROUTES FIRST ======
-console.log('🛤️ Registering test routes...');
-
-// Root route
+// ====== ROOT & HEALTH ======
 app.get('/', (req, res) => {
   res.json({ 
     message: 'E-Commerce API is running!',
     status: 'ok',
     endpoints: {
-      test: '/api/test',
       health: '/api/health',
-      auth: '/api/auth'
+      auth: {
+        test: 'GET /api/auth/test',
+        register: 'POST /api/auth/register',
+        login: 'POST /api/auth/login'
+      }
     }
   });
 });
 
-// Health check
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -42,17 +41,8 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// ====== IMPORT ROUTES ======
-try {
-  const testRoutes = require('./routes/test');
-  app.use('/api/test', testRoutes);
-  console.log('✅ Test routes loaded at /api/test');
-} catch (error) {
-  console.error('❌ Error loading test routes:', error.message);
-}
-
-// ====== AUTH ROUTES (Directly defined here for testing) ======
-console.log('🛤️ Setting up auth routes directly...');
+// ====== AUTH ROUTES (Directly defined) ======
+console.log('🛤️ Setting up auth routes...');
 
 // Test auth route
 app.get('/api/auth/test', (req, res) => {
@@ -62,33 +52,49 @@ app.get('/api/auth/test', (req, res) => {
   });
 });
 
-// Register route (directly defined)
+// Register route
 app.post('/api/auth/register', (req, res) => {
   console.log('📝 Registration attempt:', req.body);
   const { name, email, password } = req.body;
   
+  // Simple validation
+  if (!name || !email || !password) {
+    return res.status(400).json({
+      success: false,
+      message: 'Please provide name, email, and password'
+    });
+  }
+  
   res.json({
     success: true,
-    message: 'Registration endpoint is working!',
-    data: {
-      name: name || 'No name provided',
-      email: email || 'No email provided',
-      password: password ? '✅ Received' : '❌ Missing'
+    message: 'Registration successful! (Database not connected)',
+    user: {
+      name,
+      email,
+      password: '✅ Received (would be hashed)'
     }
   });
 });
 
-// Login route (directly defined)
+// Login route
 app.post('/api/auth/login', (req, res) => {
   console.log('🔑 Login attempt:', req.body);
   const { email, password } = req.body;
   
+  if (!email || !password) {
+    return res.status(400).json({
+      success: false,
+      message: 'Please provide email and password'
+    });
+  }
+  
   res.json({
     success: true,
-    message: 'Login endpoint is working!',
-    data: {
-      email: email || 'No email provided',
-      password: password ? '✅ Received' : '❌ Missing'
+    message: 'Login successful! (Database not connected)',
+    token: 'mock-jwt-token-12345',
+    user: {
+      email,
+      name: 'Test User'
     }
   });
 });
@@ -97,39 +103,6 @@ console.log('✅ Auth routes registered:');
 console.log('  GET  /api/auth/test');
 console.log('  POST /api/auth/register');
 console.log('  POST /api/auth/login');
-
-// ====== TRY TO LOAD OTHER ROUTES ======
-try {
-  const authRoutes = require('./routes/auth');
-  app.use('/api/auth', authRoutes);
-  console.log('✅ Auth routes loaded from file');
-} catch (error) {
-  console.log('⚠️ Auth routes file not found, using direct routes');
-}
-
-try {
-  const productRoutes = require('./routes/products');
-  app.use('/api/products', productRoutes);
-  console.log('✅ Product routes loaded');
-} catch (error) {
-  console.log('⚠️ Product routes file not found');
-}
-
-try {
-  const orderRoutes = require('./routes/orders');
-  app.use('/api/orders', orderRoutes);
-  console.log('✅ Order routes loaded');
-} catch (error) {
-  console.log('⚠️ Order routes file not found');
-}
-
-try {
-  const cartRoutes = require('./routes/cart');
-  app.use('/api/cart', cartRoutes);
-  console.log('✅ Cart routes loaded');
-} catch (error) {
-  console.log('⚠️ Cart routes file not found');
-}
 
 // ====== ERROR HANDLING ======
 app.use((err, req, res, next) => {
