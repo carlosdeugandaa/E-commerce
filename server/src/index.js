@@ -1,4 +1,2 @@
-// This file is the entry point for Render
-// It simply imports and runs server.js
-
+console.log('🚀 Starting from index.js...');
 require('./server');
