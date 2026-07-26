@@ -1,4 +1,4 @@
-console.log('🚀 Starting E-Commerce API Server...');
+  console.log('🚀 Starting E-Commerce API Server...');
 
 const express = require('express');
 const cors = require('cors');
@@ -9,6 +9,7 @@ dotenv.config();
 
 console.log('📦 Environment loaded:');
 console.log('  PORT:', process.env.PORT || '5000');
+console.log('  NODE_ENV:', process.env.NODE_ENV || 'development');
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.get('/', (req, res) => {
   res.json({ 
     message: 'E-Commerce API is running!',
     status: 'ok',
+    timestamp: new Date().toISOString(),
     endpoints: {
       health: '/api/health',
       auth: {
@@ -37,7 +39,11 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     message: 'Server is healthy',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: {
+      port: process.env.PORT || '5000',
+      nodeEnv: process.env.NODE_ENV || 'development'
+    }
   });
 });
 
@@ -113,14 +119,15 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ====== START SERVER ======
+// ====== START SERVER - USE RENDER'S PORT ======
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server running on port ${PORT}`);
-  console.log(`📍 http://localhost:${PORT}`);
-  console.log(`📍 Test: http://localhost:${PORT}/api/auth/test`);
-  console.log(`📍 Register: POST http://localhost:${PORT}/api/auth/register`);
+  console.log(`📍 Local: http://localhost:${PORT}`);
+  console.log(`📍 Render URL: https://e-commerce-owv6.onrender.com`);
+  console.log(`📍 Health: https://e-commerce-owv6.onrender.com/api/health`);
+  console.log(`📍 Register: POST https://e-commerce-owv6.onrender.com/api/auth/register`);
 });
 
 console.log('🚀 Server setup complete!');
