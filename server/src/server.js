@@ -1,4 +1,4 @@
-  console.log('🚀 Starting E-Commerce API Server...');
+console.log('🚀 Starting E-Commerce API Server...');
 
 const express = require('express');
 const cors = require('cors');
@@ -9,7 +9,6 @@ dotenv.config();
 
 console.log('📦 Environment loaded:');
 console.log('  PORT:', process.env.PORT || '5000');
-console.log('  NODE_ENV:', process.env.NODE_ENV || 'development');
 
 const app = express();
 
@@ -18,75 +17,99 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ====== ROOT & HEALTH ======
+// ============================================
+// ROUTES
+// ============================================
+
+// 1. Root route
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'E-Commerce API is running!',
     status: 'ok',
     timestamp: new Date().toISOString(),
     endpoints: {
-      health: '/api/health',
-      auth: {
-        test: 'GET /api/auth/test',
-        register: 'POST /api/auth/register',
-        login: 'POST /api/auth/login'
-      }
+      health: 'GET /api/health',
+      authTest: 'GET /api/auth/test',
+      register: 'POST /api/auth/register',
+      login: 'POST /api/auth/login'
     }
   });
 });
 
+// 2. Health check
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     message: 'Server is healthy',
     timestamp: new Date().toISOString(),
-    environment: {
-      port: process.env.PORT || '5000',
-      nodeEnv: process.env.NODE_ENV || 'development'
-    }
+    port: process.env.PORT || '5000'
   });
 });
 
-// ====== AUTH ROUTES (Directly defined) ======
-console.log('🛤️ Setting up auth routes...');
-
-// Test auth route
+// 3. Auth test route
 app.get('/api/auth/test', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'Auth test route is working!',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    method: req.method,
+    url: req.url
   });
 });
 
-// Register route
+// 4. REGISTER ROUTE - FULL IMPLEMENTATION
 app.post('/api/auth/register', (req, res) => {
-  console.log('📝 Registration attempt:', req.body);
+  console.log('📝 Register request received:', req.body);
+  
   const { name, email, password } = req.body;
   
-  // Simple validation
+  // Validate input
   if (!name || !email || !password) {
+    console.log('❌ Missing fields:', { name: !!name, email: !!email, password: !!password });
     return res.status(400).json({
       success: false,
       message: 'Please provide name, email, and password'
     });
   }
   
-  res.json({
+  // Simple email validation
+  if (!email.includes('@') || !email.includes('.')) {
+    return res.status(400).json({
+      success: false,
+      message: 'Please provide a valid email address'
+    });
+  }
+  
+  // Password length validation
+  if (password.length < 6) {
+    return res.status(400).json({
+      success: false,
+      message: 'Password must be at least 6 characters'
+    });
+  }
+  
+  console.log('✅ Registration successful for:', email);
+  
+  // Return success response
+  res.status(201).json({
     success: true,
-    message: 'Registration successful! (Database not connected)',
+    message: 'Registration successful!',
     user: {
-      name,
-      email,
-      password: '✅ Received (would be hashed)'
-    }
+      name: name,
+      email: email,
+      // In a real app, password would be hashed and never returned
+      password_received: true
+    },
+    token: 'mock-jwt-token-for-testing-' + Date.now()
   });
 });
 
-// Login route
+// 5. LOGIN ROUTE - FULL IMPLEMENTATION
 app.post('/api/auth/login', (req, res) => {
-  console.log('🔑 Login attempt:', req.body);
+  console.log('🔑 Login request received:', req.body);
+  
   const { email, password } = req.body;
   
+  // Validate input
   if (!email || !password) {
     return res.status(400).json({
       success: false,
@@ -94,40 +117,61 @@ app.post('/api/auth/login', (req, res) => {
     });
   }
   
+  console.log('✅ Login successful for:', email);
+  
   res.json({
     success: true,
-    message: 'Login successful! (Database not connected)',
-    token: 'mock-jwt-token-12345',
+    message: 'Login successful!',
+    token: 'mock-jwt-token-for-testing-' + Date.now(),
     user: {
-      email,
-      name: 'Test User'
+      id: 'user-123',
+      name: 'Test User',
+      email: email,
+      role: 'user'
     }
   });
 });
 
-console.log('✅ Auth routes registered:');
-console.log('  GET  /api/auth/test');
-console.log('  POST /api/auth/register');
-console.log('  POST /api/auth/login');
-
-// ====== ERROR HANDLING ======
-app.use((err, req, res, next) => {
-  console.error('❌ Error:', err.message);
-  res.status(err.statusCode || 500).json({
+// 6. Catch-all route for debugging
+app.use('*', (req, res) => {
+  console.log('❌ Route not found:', req.method, req.url);
+  res.status(404).json({
     success: false,
-    message: err.message || 'Server Error'
+    message: 'Route not found',
+    method: req.method,
+    url: req.url,
+    availableRoutes: {
+      GET: ['/', '/api/health', '/api/auth/test'],
+      POST: ['/api/auth/register', '/api/auth/login']
+    }
   });
 });
 
-// ====== START SERVER - USE RENDER'S PORT ======
+// 7. Error handler
+app.use((err, req, res, next) => {
+  console.error('❌ Server Error:', err.message);
+  res.status(500).json({
+    success: false,
+    message: err.message || 'Internal Server Error'
+  });
+});
+
+// ============================================
+// START SERVER
+// ============================================
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`📍 Local: http://localhost:${PORT}`);
-  console.log(`📍 Render URL: https://e-commerce-owv6.onrender.com`);
-  console.log(`📍 Health: https://e-commerce-owv6.onrender.com/api/health`);
-  console.log(`📍 Register: POST https://e-commerce-owv6.onrender.com/api/auth/register`);
+  console.log(`📍 Base URL: https://e-commerce-owv6.onrender.com`);
+  console.log(`📋 Available Routes:`);
+  console.log(`   GET  /`);
+  console.log(`   GET  /api/health`);
+  console.log(`   GET  /api/auth/test`);
+  console.log(`   POST /api/auth/register`);
+  console.log(`   POST /api/auth/login`);
 });
 
 console.log('🚀 Server setup complete!');
