@@ -24,7 +24,7 @@ import {
   VisibilityOff,
   CheckCircle,
 } from '@mui/icons-material';
-import { Link, useNavigate } from 'react-router-dom';
+import {  useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import AuthLayout from '../components/auth/AuthLayout';
 import SocialLogin from '../components/auth/SocialLogin';
