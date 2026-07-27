@@ -42,7 +42,11 @@ function CartPage() {
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
   // State
-  const [cartItems, setCartItems] = useState(mockCartItems);
+  // Load cart from localStorage
+  const [cartItems, setCartItems] = useState(() => {
+  const savedCart = localStorage.getItem('cart');
+  return savedCart ? JSON.parse(savedCart) : [];
+});
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
