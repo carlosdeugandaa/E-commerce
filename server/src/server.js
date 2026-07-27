@@ -20,6 +20,7 @@ const app = express();
 app.use(cors({
   origin: [
     'https://carlosdeugandaa.github.io',
+    'https://e-commerce-beige-six-23.vercel.app',
     'http://localhost:3000',
     'http://localhost:5000'
   ],
