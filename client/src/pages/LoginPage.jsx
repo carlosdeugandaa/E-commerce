@@ -22,6 +22,9 @@ import { toast } from 'react-toastify';
 import AuthLayout from '../components/auth/AuthLayout';
 import SocialLogin from '../components/auth/SocialLogin';
 
+// API URL - Your Render backend
+const API_URL = 'https://e-commerce-owv6.onrender.com/api';
+
 function LoginPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -32,6 +35,7 @@ function LoginPage() {
     rememberMe: false,
   });
   const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState('');
 
   const handleChange = (e) => {
     const { name, value, checked } = e.target;
@@ -39,9 +43,11 @@ function LoginPage() {
       ...formData,
       [name]: name === 'rememberMe' ? checked : value,
     });
-    // Clear error when user types
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
+    }
+    if (serverError) {
+      setServerError('');
     }
   };
 
@@ -66,26 +72,44 @@ function LoginPage() {
     if (!validateForm()) return;
 
     setLoading(true);
+    setServerError('');
+
     try {
-      // Mock API call - replace with actual API
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock successful login
-      localStorage.setItem('token', 'mock-jwt-token');
-      localStorage.setItem('user', JSON.stringify({
-        email: formData.email,
-        name: 'John Doe',
-      }));
-      
-      toast.success('Welcome back! Redirecting...', {
-        position: 'bottom-right',
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
       });
-      
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+
+      // ✅ Save the actual user data from the API
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      toast.success(`Welcome back, ${data.user.name}!`, {
+        position: 'bottom-right',
+        autoClose: 2000,
+      });
+
+      // Redirect after a short delay
       setTimeout(() => {
         navigate('/');
-      }, 1000);
+      }, 500);
+
     } catch (error) {
-      toast.error('Invalid email or password', {
+      console.error('Login error:', error);
+      setServerError(error.message || 'Invalid email or password');
+      toast.error(error.message || 'Invalid email or password', {
         position: 'bottom-right',
       });
     } finally {
@@ -102,6 +126,13 @@ function LoginPage() {
       alternateText="Don't have an account?"
     >
       <form onSubmit={handleSubmit}>
+        {/* Server Error */}
+        {serverError && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {serverError}
+          </Alert>
+        )}
+
         {/* Email Field */}
         <TextField
           fullWidth
