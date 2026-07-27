@@ -23,8 +23,35 @@ function ProductCard({ product, compact = false }) {
   const discountPercentage = product.discount || 0;
   const finalPrice = product.discountedPrice || product.price;
 
+  // Check if product is in wishlist on mount
+  React.useEffect(() => {
+    const savedWishlist = localStorage.getItem('wishlist');
+    if (savedWishlist) {
+      const wishlist = JSON.parse(savedWishlist);
+      const exists = wishlist.some(item => item.id === product.id);
+      setIsLiked(exists);
+    }
+  }, [product.id]);
+
   const handleAddToCart = (e) => {
     e.preventDefault();
+    
+    // Get existing cart
+    const savedCart = localStorage.getItem('cart');
+    const cart = savedCart ? JSON.parse(savedCart) : [];
+    
+    // Check if product already exists
+    const existingItem = cart.find(item => item.id === product.id);
+    if (existingItem) {
+      existingItem.quantity += 1;
+    } else {
+      cart.push({ ...product, quantity: 1 });
+    }
+    
+    // Save to localStorage
+    localStorage.setItem('cart', JSON.stringify(cart));
+    window.dispatchEvent(new Event('cartUpdated'));
+    
     toast.success(`${product.name} added to cart!`, {
       position: 'bottom-right',
       autoClose: 2000,
@@ -33,11 +60,33 @@ function ProductCard({ product, compact = false }) {
 
   const handleWishlistToggle = (e) => {
     e.preventDefault();
-    setIsLiked(!isLiked);
-    toast.info(isLiked ? 'Removed from wishlist' : 'Added to wishlist', {
-      position: 'bottom-right',
-      autoClose: 1500,
-    });
+    
+    // Get existing wishlist
+    const savedWishlist = localStorage.getItem('wishlist');
+    const wishlist = savedWishlist ? JSON.parse(savedWishlist) : [];
+    
+    // Check if already in wishlist
+    const index = wishlist.findIndex(item => item.id === product.id);
+    
+    if (index > -1) {
+      wishlist.splice(index, 1);
+      setIsLiked(false);
+      localStorage.setItem('wishlist', JSON.stringify(wishlist));
+      window.dispatchEvent(new Event('wishlistUpdated'));
+      toast.info('Removed from wishlist', {
+        position: 'bottom-right',
+        autoClose: 1500,
+      });
+    } else {
+      wishlist.push(product);
+      setIsLiked(true);
+      localStorage.setItem('wishlist', JSON.stringify(wishlist));
+      window.dispatchEvent(new Event('wishlistUpdated'));
+      toast.info('Added to wishlist', {
+        position: 'bottom-right',
+        autoClose: 1500,
+      });
+    }
   };
 
   return (
@@ -142,7 +191,7 @@ function ProductCard({ product, compact = false }) {
         </Box>
 
         <CardContent sx={{ flexGrow: 1, pb: 1 }}>
-          {/* Brand / Category */}
+          {/* Brand */}
           {product.brand && (
             <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase' }}>
               {product.brand}
