@@ -5,7 +5,7 @@ import axios from 'axios';
 // ============================================
 
 // Use your Render backend URL
-const API_URL = 'https://e-commerce-owv6.onrender.com/api';
+const API_URL = 'https://e-commerce-owv6.onrender.com';
 console.log('🔗 API_URL:', API_URL);
 // Create axios instance
 const api = axios.create({
