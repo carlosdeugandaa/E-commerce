@@ -16,7 +16,11 @@ import AdminProducts from './pages/AdminProducts';
 import AdminOrders from './pages/AdminOrders';
 import AdminUsers from './pages/AdminUsers';
 
+console.log('🚀 App is rendering!'); // ← ADD THIS
+
 function App() {
+  console.log('📦 App component mounted'); // ← ADD THIS
+  
   return (
     <BrowserRouter>
       <Layout>
@@ -39,7 +43,7 @@ function App() {
           <Route path="/wishlist" element={<WishlistPage />} />
           
           {/* Admin Routes */}
-          <Route path="/admin" element={<AdminDashboard />} /> {/* NEW */}
+          <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/products" element={<AdminProducts />} />
           <Route path="/admin/orders" element={<AdminOrders />} />
           <Route path="/admin/users" element={<AdminUsers />} />
