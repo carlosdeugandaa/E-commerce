@@ -14,8 +14,26 @@ console.log('  MONGODB_URI:', process.env.MONGODB_URI ? '✅ Set' : '❌ NOT SET
 
 const app = express();
 
+// ============================================
+// CORS - Option 1: Specific Origins Only
+// ============================================
+app.use(cors({
+  origin: [
+    'https://carlosdeugandaa.github.io',
+    'http://localhost:3000',
+    'http://localhost:5000'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+console.log('✅ CORS configured for:');
+console.log('  - https://carlosdeugandaa.github.io');
+console.log('  - http://localhost:3000');
+console.log('  - http://localhost:5000');
+
 // Middleware
-app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -79,6 +97,7 @@ app.get('/', (req, res) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     database: dbConnected ? '✅ Connected' : '❌ Not connected (using memory)',
+    cors: '✅ Specific origins only',
     endpoints: {
       health: 'GET /api/health',
       authTest: 'GET /api/auth/test',
@@ -293,6 +312,36 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // ============================================
+// CATCH-ALL ROUTE
+// ============================================
+
+app.use('*', (req, res) => {
+  console.log('❌ Route not found:', req.method, req.url);
+  res.status(404).json({
+    success: false,
+    message: 'Route not found',
+    method: req.method,
+    url: req.url,
+    availableRoutes: {
+      GET: ['/', '/api/health', '/api/auth/test'],
+      POST: ['/api/auth/register', '/api/auth/login']
+    }
+  });
+});
+
+// ============================================
+// ERROR HANDLER
+// ============================================
+
+app.use((err, req, res, next) => {
+  console.error('❌ Server Error:', err.message);
+  res.status(500).json({
+    success: false,
+    message: err.message || 'Internal Server Error'
+  });
+});
+
+// ============================================
 // START SERVER
 // ============================================
 
@@ -305,6 +354,13 @@ const startServer = async () => {
     console.log(`✅ Server running on port ${PORT}`);
     console.log(`📍 Base URL: https://e-commerce-owv6.onrender.com`);
     console.log(`📋 Database: ${dbConnected ? '✅ MongoDB' : '❌ Memory (fallback)'}`);
+    console.log(`🔒 CORS: Specific origins only`);
+    console.log(`📋 Available Routes:`);
+    console.log(`   GET  /`);
+    console.log(`   GET  /api/health`);
+    console.log(`   GET  /api/auth/test`);
+    console.log(`   POST /api/auth/register`);
+    console.log(`   POST /api/auth/login`);
   });
 };
 
