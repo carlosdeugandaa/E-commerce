@@ -18,7 +18,7 @@ import AdminUsers from './pages/AdminUsers';
 
 function App() {
   return (
-    <BrowserRouter basename="/e-commerce">
+    <BrowserRouter>
       <Layout>
         <Routes>
           {/* Public Routes */}
