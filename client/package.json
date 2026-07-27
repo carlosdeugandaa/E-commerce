@@ -2,7 +2,7 @@
   "name": "e-commerce",
   "version": "1.0.0",
   "private": true,
-  "homepage": "https://carlosdeugandaa.github.io/e-commerce/",
+  
   "dependencies": {
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
