@@ -32,8 +32,7 @@ jobs:
       
       - name: Build
         working-directory: client
-        run: |
-          CI=false npm run build    # ← THIS IS THE FIX
+        run: CI=false npm run build
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
