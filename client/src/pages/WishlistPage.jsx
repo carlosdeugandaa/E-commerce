@@ -13,8 +13,6 @@ import {
   useMediaQuery,
   useTheme,
   Pagination,
-  Skeleton,
-  Divider,
   Alert,
   Snackbar,
   MenuItem,
@@ -23,21 +21,18 @@ import {
   Favorite,
   ShoppingCart,
   Search,
-  FilterList,
   Clear,
   ArrowBack,
 } from '@mui/icons-material';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import WishlistCard from '../components/wishlist/WishlistCard';
-import { mockProducts } from '../utils/mockData';
 
 function WishlistPage() {
   const theme = useTheme();
   const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
   // State
   const [wishlistItems, setWishlistItems] = useState([]);
@@ -50,28 +45,27 @@ function WishlistPage() {
 
   const itemsPerPage = 8;
 
-  // Load wishlist data
+  // Load wishlist from localStorage on mount
   useEffect(() => {
-    // Mock API call - replace with actual API
-    const fetchWishlist = async () => {
-      setLoading(true);
+    const savedWishlist = localStorage.getItem('wishlist');
+    if (savedWishlist) {
       try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // Get first 8 products as mock wishlist
-        const wishlist = mockProducts.slice(0, 8);
+        const wishlist = JSON.parse(savedWishlist);
         setWishlistItems(wishlist);
         setFilteredItems(wishlist);
       } catch (error) {
-        toast.error('Failed to load wishlist', {
-          position: 'bottom-right',
-        });
-      } finally {
-        setLoading(false);
+        console.error('Error loading wishlist:', error);
+        setWishlistItems([]);
+        setFilteredItems([]);
       }
-    };
-
-    fetchWishlist();
+    }
+    setLoading(false);
   }, []);
+
+  // Save to localStorage whenever wishlist changes
+  useEffect(() => {
+    localStorage.setItem('wishlist', JSON.stringify(wishlistItems));
+  }, [wishlistItems]);
 
   // Filter and sort items
   useEffect(() => {
@@ -82,7 +76,7 @@ function WishlistPage() {
       const searchLower = searchTerm.toLowerCase();
       result = result.filter(item =>
         item.name.toLowerCase().includes(searchLower) ||
-        item.description.toLowerCase().includes(searchLower) ||
+        item.description?.toLowerCase().includes(searchLower) ||
         item.brand?.toLowerCase().includes(searchLower)
       );
     }
@@ -112,7 +106,10 @@ function WishlistPage() {
 
   // Handlers
   const handleRemoveItem = (itemId) => {
-    setWishlistItems(prev => prev.filter(item => item.id !== itemId));
+    const updatedWishlist = wishlistItems.filter(item => item.id !== itemId);
+    setWishlistItems(updatedWishlist);
+    setFilteredItems(updatedWishlist);
+    window.dispatchEvent(new Event('wishlistUpdated'));
     setSnackbar({
       open: true,
       message: 'Item removed from wishlist',
@@ -123,6 +120,8 @@ function WishlistPage() {
   const handleClearWishlist = () => {
     if (wishlistItems.length === 0) return;
     setWishlistItems([]);
+    setFilteredItems([]);
+    window.dispatchEvent(new Event('wishlistUpdated'));
     setSnackbar({
       open: true,
       message: 'Wishlist cleared',
@@ -137,6 +136,23 @@ function WishlistPage() {
       });
       return;
     }
+    
+    // Add all items to cart
+    const savedCart = localStorage.getItem('cart');
+    const cart = savedCart ? JSON.parse(savedCart) : [];
+    
+    wishlistItems.forEach(item => {
+      const existingItem = cart.find(cartItem => cartItem.id === item.id);
+      if (existingItem) {
+        existingItem.quantity += 1;
+      } else {
+        cart.push({ ...item, quantity: 1 });
+      }
+    });
+    
+    localStorage.setItem('cart', JSON.stringify(cart));
+    window.dispatchEvent(new Event('cartUpdated'));
+    
     toast.success(`${wishlistItems.length} items added to cart!`, {
       position: 'bottom-right',
     });
@@ -153,21 +169,11 @@ function WishlistPage() {
     page * itemsPerPage
   );
 
-  // Loading skeleton
   if (loading) {
     return (
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-          <Skeleton variant="text" width={200} height={40} />
-          <Skeleton variant="rectangular" width={150} height={40} />
-        </Box>
-        <Grid container spacing={3}>
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
-            <Grid item xs={6} sm={4} md={3} key={item}>
-              <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 2 }} />
-            </Grid>
-          ))}
-        </Grid>
+        <Typography variant="h4" sx={{ fontWeight: 700, mb: 4 }}>My Wishlist</Typography>
+        <Typography>Loading...</Typography>
       </Container>
     );
   }
