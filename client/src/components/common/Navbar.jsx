@@ -1,3 +1,5 @@
+
+                   
 import React, { useState, useEffect } from 'react';
 import {
   AppBar,
@@ -54,10 +56,38 @@ function Navbar() {
   const [user, setUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  
+  // ✅ Dynamic state for counts
+  const [cartCount, setCartCount] = useState(0);
+  const [wishlistCount, setWishlistCount] = useState(0);
 
-  // Mock counts - replace with actual data
-  const cartCount = 2;
-  const wishlistCount = 3;
+  // ✅ Load counts from localStorage on mount and when they change
+  useEffect(() => {
+    const updateCounts = () => {
+      // Load cart from localStorage
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      setCartCount(cart.length);
+      
+      // Load wishlist from localStorage
+      const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+      setWishlistCount(wishlist.length);
+    };
+
+    updateCounts();
+
+    // ✅ Listen for storage changes (when cart/wishlist updates in other tabs)
+    window.addEventListener('storage', updateCounts);
+    
+    // ✅ Custom event for same-page updates
+    window.addEventListener('cartUpdated', updateCounts);
+    window.addEventListener('wishlistUpdated', updateCounts);
+
+    return () => {
+      window.removeEventListener('storage', updateCounts);
+      window.removeEventListener('cartUpdated', updateCounts);
+      window.removeEventListener('wishlistUpdated', updateCounts);
+    };
+  }, []);
 
   // Load user from localStorage
   useEffect(() => {
@@ -185,25 +215,25 @@ function Navbar() {
                 </IconButton>
               ) : (
                 <>
-                  {/* Wishlist Icon */}
+                  {/* Wishlist Icon - DYNAMIC COUNT */}
                   <IconButton
                     color="inherit"
                     component={Link}
                     to="/wishlist"
                     sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
                   >
-                    <Badge badgeContent={wishlistCount} color="secondary">
+                    <Badge badgeContent={wishlistCount} color="secondary" max={99}>
                       <Favorite />
                     </Badge>
                   </IconButton>
 
-                  {/* Cart Icon */}
+                  {/* Cart Icon - DYNAMIC COUNT */}
                   <IconButton
                     color="inherit"
                     component={Link}
                     to="/cart"
                   >
-                    <Badge badgeContent={cartCount} color="primary">
+                    <Badge badgeContent={cartCount} color="primary" max={99}>
                       <ShoppingCart />
                     </Badge>
                   </IconButton>
@@ -254,12 +284,16 @@ function Navbar() {
                     <MenuItem onClick={handleMenuClose} component={Link} to="/wishlist">
                       <ListItemIcon><Favorite fontSize="small" /></ListItemIcon>
                       Wishlist
-                      <Chip label={wishlistCount} size="small" color="secondary" sx={{ ml: 'auto' }} />
+                      {wishlistCount > 0 && (
+                        <Chip label={wishlistCount} size="small" color="secondary" sx={{ ml: 'auto' }} />
+                      )}
                     </MenuItem>
                     <MenuItem onClick={handleMenuClose} component={Link} to="/cart">
                       <ListItemIcon><ShoppingCart fontSize="small" /></ListItemIcon>
                       Cart
-                      <Chip label={cartCount} size="small" color="primary" sx={{ ml: 'auto' }} />
+                      {cartCount > 0 && (
+                        <Chip label={cartCount} size="small" color="primary" sx={{ ml: 'auto' }} />
+                      )}
                     </MenuItem>
                     
                     {/* Admin Section */}
