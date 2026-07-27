@@ -9,7 +9,6 @@ import {
   IconButton,
   Alert,
   CircularProgress,
-  Grid,
   Typography,
   Stepper,
   Step,
@@ -30,12 +29,16 @@ import { toast } from 'react-toastify';
 import AuthLayout from '../components/auth/AuthLayout';
 import SocialLogin from '../components/auth/SocialLogin';
 
+// API URL - Your Render backend
+const API_URL = 'https://e-commerce-owv6.onrender.com/api';
+
 function RegisterPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
+  const [serverError, setServerError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -54,6 +57,9 @@ function RegisterPage() {
     });
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
+    }
+    if (serverError) {
+      setServerError('');
     }
   };
 
@@ -108,20 +114,41 @@ function RegisterPage() {
     if (!validateStep(2)) return;
     
     setLoading(true);
+    setServerError('');
+
     try {
-      // Mock API call - replace with actual API
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock successful registration
-      toast.success('Registration successful! Redirecting to login...', {
-        position: 'bottom-right',
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        }),
       });
-      
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
+
+      toast.success('Registration successful! Please login.', {
+        position: 'bottom-right',
+        autoClose: 3000,
+      });
+
+      // Redirect to login after a short delay
       setTimeout(() => {
         navigate('/login');
       }, 1500);
+
     } catch (error) {
-      toast.error('Registration failed. Please try again.', {
+      console.error('Registration error:', error);
+      setServerError(error.message || 'Registration failed. Please try again.');
+      toast.error(error.message || 'Registration failed. Please try again.', {
         position: 'bottom-right',
       });
     } finally {
@@ -135,6 +162,11 @@ function RegisterPage() {
       description: 'Tell us about yourself',
       content: (
         <Box sx={{ mt: 2 }}>
+          {serverError && activeStep === 2 && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {serverError}
+            </Alert>
+          )}
           <TextField
             fullWidth
             label="Full Name"
@@ -270,6 +302,11 @@ function RegisterPage() {
       description: 'Review and agree',
       content: (
         <Box sx={{ mt: 2 }}>
+          {serverError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {serverError}
+            </Alert>
+          )}
           <Paper
             variant="outlined"
             sx={{
@@ -289,9 +326,7 @@ function RegisterPage() {
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
-              tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
-              veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex
-              ea commodo consequat.
+              tempor incididunt ut labore et dolore magna aliqua.
             </Typography>
           </Paper>
 
