@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -37,6 +37,9 @@ import {
   Dashboard,
   Settings,
   Help,
+  Receipt,
+  Store,
+  People,
 } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -48,18 +51,29 @@ function Navbar() {
   const [searchTerm, setSearchTerm] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  
-  // Mock auth state - replace with actual auth
-  const isLoggedIn = true; // Set to true for testing
-  const isAdmin = false;
-  const user = {
-    name: 'John Doe',
-    email: 'john@example.com',
-  };
+  const [user, setUser] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Mock counts - replace with actual data
   const cartCount = 2;
   const wishlistCount = 3;
+
+  // Load user from localStorage
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        setIsLoggedIn(true);
+        setIsAdmin(parsedUser.role === 'admin');
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        localStorage.removeItem('user');
+      }
+    }
+  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -80,11 +94,14 @@ function Navbar() {
 
   const handleLogout = () => {
     handleMenuClose();
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setIsLoggedIn(false);
+    setIsAdmin(false);
     toast.success('Logged out successfully!', {
       position: 'bottom-right',
     });
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
     navigate('/login');
   };
 
@@ -197,7 +214,7 @@ function Navbar() {
                 <>
                   <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
                     <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32 }}>
-                      {user.name?.[0] || 'U'}
+                      {user?.name?.[0] || 'U'}
                     </Avatar>
                   </IconButton>
                   <Menu
@@ -218,10 +235,10 @@ function Navbar() {
                     {/* User Info */}
                     <Box sx={{ px: 2, py: 1.5, bgcolor: 'grey.50' }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                        {user.name}
+                        {user?.name || 'User'}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {user.email}
+                        {user?.email || ''}
                       </Typography>
                     </Box>
                     <Divider />
@@ -245,12 +262,28 @@ function Navbar() {
                       <Chip label={cartCount} size="small" color="primary" sx={{ ml: 'auto' }} />
                     </MenuItem>
                     
+                    {/* Admin Section */}
                     {isAdmin && (
                       <>
                         <Divider />
+                        <Typography variant="caption" sx={{ px: 2, py: 1, color: 'text.secondary' }}>
+                          Admin
+                        </Typography>
                         <MenuItem onClick={handleMenuClose} component={Link} to="/admin">
-                          <ListItemIcon><AdminPanelSettings fontSize="small" /></ListItemIcon>
-                          Admin Dashboard
+                          <ListItemIcon><Dashboard fontSize="small" /></ListItemIcon>
+                          Dashboard
+                        </MenuItem>
+                        <MenuItem onClick={handleMenuClose} component={Link} to="/admin/products">
+                          <ListItemIcon><Store fontSize="small" /></ListItemIcon>
+                          Products
+                        </MenuItem>
+                        <MenuItem onClick={handleMenuClose} component={Link} to="/admin/orders">
+                          <ListItemIcon><Receipt fontSize="small" /></ListItemIcon>
+                          Orders
+                        </MenuItem>
+                        <MenuItem onClick={handleMenuClose} component={Link} to="/admin/users">
+                          <ListItemIcon><People fontSize="small" /></ListItemIcon>
+                          Users
                         </MenuItem>
                       </>
                     )}
@@ -343,7 +376,7 @@ function Navbar() {
             >
               🛍️ ShopHub
             </Typography>
-            {isLoggedIn && (
+            {isLoggedIn && user && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
                 <Avatar sx={{ bgcolor: 'primary.main' }}>
                   {user.name?.[0] || 'U'}
@@ -467,22 +500,25 @@ function Navbar() {
                   )}
                 </ListItem>
                 {isAdmin && (
-                  <ListItem
-                    button
-                    component={Link}
-                    to="/admin"
-                    onClick={() => setMobileDrawerOpen(false)}
-                    sx={{
-                      borderRadius: 2,
-                      mx: 1,
-                      '&:hover': {
-                        bgcolor: 'primary.light',
-                      },
-                    }}
-                  >
-                    <ListItemIcon><Dashboard /></ListItemIcon>
-                    <ListItemText primary="Admin Dashboard" />
-                  </ListItem>
+                  <>
+                    <Divider />
+                    <ListItem
+                      button
+                      component={Link}
+                      to="/admin"
+                      onClick={() => setMobileDrawerOpen(false)}
+                      sx={{
+                        borderRadius: 2,
+                        mx: 1,
+                        '&:hover': {
+                          bgcolor: 'primary.light',
+                        },
+                      }}
+                    >
+                      <ListItemIcon><Dashboard /></ListItemIcon>
+                      <ListItemText primary="Admin Dashboard" />
+                    </ListItem>
+                  </>
                 )}
                 <Divider />
                 <ListItem
