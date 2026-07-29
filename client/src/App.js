@@ -15,40 +15,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminProducts from './pages/AdminProducts';
 import AdminOrders from './pages/AdminOrders';
 import AdminUsers from './pages/AdminUsers';
-// At the top, after imports
-import { useEffect } from 'react';
 
 function App() {
-  useEffect(() => {
-    // This will show the API URL on the page
-    const debug = document.createElement('div');
-    debug.style.position = 'fixed';
-    debug.style.bottom = '10px';
-    debug.style.right = '10px';
-    debug.style.background = 'rgba(0,0,0,0.8)';
-    debug.style.color = 'white';
-    debug.style.padding = '10px';
-    debug.style.fontSize = '12px';
-    debug.style.zIndex = '9999';
-    debug.innerHTML = `API: https://e-commerce-owv6.onrender.com/api`;
-    document.body.appendChild(debug);
-  }, []);
-
-  return (
-    <BrowserRouter>
-      <Layout>
-        <Routes>
-          {/* ... your routes ... */}
-        </Routes>
-      </Layout>
-    </BrowserRouter>
-  );
-}
-console.log('🚀 App is rendering!'); // ← ADD THIS
-
-function App() {
-  console.log('📦 App component mounted'); // ← ADD THIS
-  
   return (
     <BrowserRouter>
       <Layout>
@@ -81,4 +49,4 @@ function App() {
   );
 }
 
-export default App;
+export default App; 
