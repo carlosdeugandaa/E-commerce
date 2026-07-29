@@ -117,7 +117,7 @@ function RegisterPage() {
     setServerError('');
 
     try {
-      const response = await fetch(`${API_URL}/auth/register`, {
+      const response = await fetch('https://e-commerce-owv6.onrender.com/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
