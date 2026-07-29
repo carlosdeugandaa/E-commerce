@@ -1,3 +1,4 @@
+alert('API_URL: https://e-commerce-owv6.onrender.com/api');
 import axios from 'axios';
 
 // ============================================
