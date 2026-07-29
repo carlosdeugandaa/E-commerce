@@ -31,6 +31,7 @@ app.use(cors({
 
 console.log('✅ CORS configured for:');
 console.log('  - https://carlosdeugandaa.github.io');
+console.log('  -https://e-commerce-beige-six-23.vercel.app');
 console.log('  - http://localhost:3000');
 console.log('  - http://localhost:5000');
 
