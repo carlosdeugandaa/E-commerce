@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Grid,
@@ -11,28 +11,40 @@ import {
 import { motion } from 'framer-motion';
 import ProfileSidebar from '../components/profile/ProfileSidebar';
 import ProfileInfo from '../components/profile/ProfileInfo';
-import OrdersPage from './OrdersPage';
 
 function ProfilePage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [activeTab, setActiveTab] = useState('profile');
+  const [user, setUser] = useState(null);
 
-  // Mock user data
-  const user = {
-    name: 'John Doe',
-    email: 'john@example.com',
-    phone: '+1 (555) 123-4567',
-    address: '123 Main Street, New York, NY 10001',
-    bio: 'Passionate shopper and tech enthusiast.',
-  };
+  // ✅ Load user from localStorage
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      try {
+        setUser(JSON.parse(userData));
+      } catch (error) {
+        console.error('Error loading user:', error);
+      }
+    }
+  }, []);
 
   const renderContent = () => {
     switch (activeTab) {
       case 'profile':
         return <ProfileInfo user={user} />;
       case 'orders':
-        return <OrdersPage />;
+        return (
+          <Box sx={{ textAlign: 'center', py: 8 }}>
+            <Typography variant="h6" gutterBottom>
+              My Orders
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Your orders will appear here
+            </Typography>
+          </Box>
+        );
       case 'wishlist':
         return (
           <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -81,6 +93,14 @@ function ProfilePage() {
         return null;
     }
   };
+
+  if (!user) {
+    return (
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Typography>Loading profile...</Typography>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
