@@ -2,23 +2,30 @@ import React from 'react';
 import { Box, Button, Divider, Typography } from '@mui/material';
 import { Google, Facebook, Apple } from '@mui/icons-material';
 import { toast } from 'react-toastify';
-import { googleLogin } from '../../firebase/config';
 import { useNavigate } from 'react-router-dom';
+import { googleLogin } from '../../firebase/config';
 
 function SocialLogin() {
   const navigate = useNavigate();
 
   const handleGoogleLogin = async () => {
-    const result = await googleLogin();
-    
-    if (result.success) {
-      localStorage.setItem('token', result.user.uid);
-      localStorage.setItem('user', JSON.stringify(result.user));
-      toast.success(`Welcome ${result.user.name}!`, {
-        position: 'bottom-right',
-      });
-      navigate('/');
-    } else {
+    try {
+      const result = await googleLogin();
+      
+      if (result.success) {
+        localStorage.setItem('token', result.user.uid);
+        localStorage.setItem('user', JSON.stringify(result.user));
+        toast.success(`Welcome ${result.user.name || 'User'}!`, {
+          position: 'bottom-right',
+        });
+        navigate('/');
+      } else {
+        toast.error('Google login failed. Please try again.', {
+          position: 'bottom-right',
+        });
+      }
+    } catch (error) {
+      console.error('Google login error:', error);
       toast.error('Google login failed. Please try again.', {
         position: 'bottom-right',
       });
