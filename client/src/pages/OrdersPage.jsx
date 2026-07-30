@@ -20,6 +20,8 @@ import {
   ShoppingBag,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import OrderCard from '../components/profile/OrderCard';
+import { getOrders } from '../firebase/config';
 
 function OrdersPage() {
   const theme = useTheme();
@@ -30,19 +32,46 @@ function OrdersPage() {
   const [page, setPage] = useState(1);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const user = JSON.parse(localStorage.getItem('user'));
 
   useEffect(() => {
-    // Load orders from Firebase or localStorage
-    // For now, keep it empty
-    setTimeout(() => {
+    const loadOrders = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      const result = await getOrders(user.uid);
+      if (result.success) {
+        setOrders(result.orders);
+      }
       setLoading(false);
-    }, 500);
-  }, []);
+    };
+    loadOrders();
+  }, [user]);
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
     setPage(1);
   };
+
+  // Filter orders based on tab and search
+  const filteredOrders = orders.filter(order => {
+    if (tabValue === 1) {
+      return order.orderStatus === 'processing' || order.orderStatus === 'shipped';
+    } else if (tabValue === 2) {
+      return order.orderStatus === 'delivered';
+    } else if (tabValue === 3) {
+      return order.orderStatus === 'cancelled';
+    }
+    return true;
+  });
+
+  const itemsPerPage = 3;
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const displayedOrders = filteredOrders.slice(
+    (page - 1) * itemsPerPage,
+    page * itemsPerPage
+  );
 
   if (loading) {
     return (
@@ -105,22 +134,59 @@ function OrdersPage() {
         <Tab label="Cancelled" />
       </Tabs>
 
-      {/* Empty State */}
-      {orders.length === 0 && (
+      {/* Orders List */}
+      {displayedOrders.length > 0 ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          {displayedOrders.map((order, index) => (
+            <motion.div
+              key={order.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+            >
+              <OrderCard order={order} />
+            </motion.div>
+          ))}
+
+          {totalPages > 1 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(e, value) => setPage(value)}
+                color="primary"
+                size={isMobile ? 'small' : 'medium'}
+              />
+            </Box>
+          )}
+        </motion.div>
+      ) : (
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <ShoppingBag sx={{ fontSize: 64, color: 'grey.400', mb: 2 }} />
           <Typography variant="h6" gutterBottom>
             No orders yet
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Start shopping to see your orders here
+            {searchTerm || statusFilter !== 'all' 
+              ? 'Try adjusting your filters'
+              : 'Start shopping to see your orders here'}
           </Typography>
-          <Button
-            variant="contained"
-            onClick={() => window.location.href = '/products'}
-          >
-            Start Shopping
-          </Button>
+          {(searchTerm || statusFilter !== 'all') && (
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setSearchTerm('');
+                setStatusFilter('all');
+              }}
+              sx={{ mt: 2 }}
+            >
+              Clear Filters
+            </Button>
+          )}
         </Box>
       )}
     </Box>
