@@ -56,11 +56,10 @@ function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   
-  // ✅ Dynamic state for counts
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
 
-  // ✅ Load counts from localStorage
+  // Load counts from localStorage
   useEffect(() => {
     const updateCounts = () => {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
@@ -82,20 +81,38 @@ function Navbar() {
     };
   }, []);
 
-  // Load user from localStorage
+  // ✅ Load user from localStorage with storage event listener
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-        setIsLoggedIn(true);
-        setIsAdmin(parsedUser.role === 'admin');
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        localStorage.removeItem('user');
+    const loadUser = () => {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        try {
+          const parsedUser = JSON.parse(userData);
+          setUser(parsedUser);
+          setIsLoggedIn(true);
+          setIsAdmin(parsedUser.role === 'admin');
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          localStorage.removeItem('user');
+          setUser(null);
+          setIsLoggedIn(false);
+          setIsAdmin(false);
+        }
+      } else {
+        setUser(null);
+        setIsLoggedIn(false);
+        setIsAdmin(false);
       }
-    }
+    };
+
+    loadUser();
+
+    // ✅ Listen for storage changes (login/logout)
+    window.addEventListener('storage', loadUser);
+
+    return () => {
+      window.removeEventListener('storage', loadUser);
+    };
   }, []);
 
   const handleSearch = (e) => {
@@ -115,16 +132,18 @@ function Navbar() {
     setAnchorEl(null);
   };
 
-  // ✅ Firebase Logout
   const handleLogout = async () => {
     handleMenuClose();
-    const result = await logoutUser();
+    await logoutUser();
     
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
     setIsLoggedIn(false);
     setIsAdmin(false);
+    
+    // ✅ Force immediate update
+    window.dispatchEvent(new Event('storage'));
     
     toast.success('Logged out successfully!', {
       position: 'bottom-right',
@@ -145,14 +164,12 @@ function Navbar() {
       <AppBar position="sticky" color="default" elevation={1}>
         <Container maxWidth="xl">
           <Toolbar sx={{ py: 1, flexWrap: 'wrap', gap: 2 }}>
-            {/* Mobile Menu Button */}
             {isMobile && (
               <IconButton onClick={() => setMobileDrawerOpen(true)}>
                 <MenuIcon />
               </IconButton>
             )}
 
-            {/* Logo */}
             <Typography
               variant="h5"
               component={Link}
@@ -171,7 +188,6 @@ function Navbar() {
               🛍️ ShopHub
             </Typography>
 
-            {/* Search Bar - Desktop */}
             {!isMobile && (
               <Box
                 component="form"
@@ -205,7 +221,6 @@ function Navbar() {
               </Box>
             )}
 
-            {/* Navigation Icons */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {isMobile ? (
                 <IconButton onClick={handleSearch}>
@@ -349,7 +364,6 @@ function Navbar() {
             </Box>
           </Toolbar>
 
-          {/* Mobile Search Bar */}
           {isMobile && (
             <Box component="form" onSubmit={handleSearch} sx={{ px: 2, pb: 1 }}>
               <TextField
@@ -581,37 +595,4 @@ function Navbar() {
                   color: 'white',
                   '&:hover': {
                     bgcolor: 'primary.dark',
-                  },
-                }}
-              >
-                <ListItemIcon sx={{ color: 'white' }}>
-                  <Person />
-                </ListItemIcon>
-                <ListItemText primary="Login / Register" primaryTypographyProps={{ fontWeight: 600 }} />
-              </ListItem>
-            )}
-          </List>
-
-          <Box sx={{ p: 2, mt: 'auto', bgcolor: 'grey.50' }}>
-            <Typography variant="caption" color="text.secondary" display="block">
-              © 2024 ShopHub
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-              <Typography variant="caption" color="text.secondary">
-                Help
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Privacy
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Terms
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
-      </Drawer>
-    </>
-  );
-}
-
-export default Navbar;
+       
