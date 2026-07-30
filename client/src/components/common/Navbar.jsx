@@ -33,7 +33,6 @@ import {
   Category,
   History,
   ExitToApp,
-  AdminPanelSettings,
   Dashboard,
   Settings,
   Help,
@@ -81,7 +80,7 @@ function Navbar() {
     };
   }, []);
 
-  // ✅ Load user from localStorage with storage event listener
+  // Load user from localStorage with storage event listener
   useEffect(() => {
     const loadUser = () => {
       const userData = localStorage.getItem('user');
@@ -106,8 +105,6 @@ function Navbar() {
     };
 
     loadUser();
-
-    // ✅ Listen for storage changes (login/logout)
     window.addEventListener('storage', loadUser);
 
     return () => {
@@ -142,7 +139,6 @@ function Navbar() {
     setIsLoggedIn(false);
     setIsAdmin(false);
     
-    // ✅ Force immediate update
     window.dispatchEvent(new Event('storage'));
     
     toast.success('Logged out successfully!', {
@@ -595,4 +591,8 @@ function Navbar() {
                   color: 'white',
                   '&:hover': {
                     bgcolor: 'primary.dark',
-       
+                  },
+                }}
+              >
+                <ListItemIcon sx={{ color: 'white' }}>
+    
