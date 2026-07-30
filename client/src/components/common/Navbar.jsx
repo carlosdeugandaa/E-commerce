@@ -1,5 +1,3 @@
-
-                   
 import React, { useState, useEffect } from 'react';
 import {
   AppBar,
@@ -45,6 +43,7 @@ import {
 } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { logoutUser } from '../../firebase/config';
 
 function Navbar() {
   const theme = useTheme();
@@ -61,24 +60,18 @@ function Navbar() {
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
 
-  // ✅ Load counts from localStorage on mount and when they change
+  // ✅ Load counts from localStorage
   useEffect(() => {
     const updateCounts = () => {
-      // Load cart from localStorage
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
       setCartCount(cart.length);
       
-      // Load wishlist from localStorage
       const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
       setWishlistCount(wishlist.length);
     };
 
     updateCounts();
-
-    // ✅ Listen for storage changes (when cart/wishlist updates in other tabs)
     window.addEventListener('storage', updateCounts);
-    
-    // ✅ Custom event for same-page updates
     window.addEventListener('cartUpdated', updateCounts);
     window.addEventListener('wishlistUpdated', updateCounts);
 
@@ -122,16 +115,21 @@ function Navbar() {
     setAnchorEl(null);
   };
 
-  const handleLogout = () => {
+  // ✅ Firebase Logout
+  const handleLogout = async () => {
     handleMenuClose();
+    const result = await logoutUser();
+    
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
     setIsLoggedIn(false);
     setIsAdmin(false);
+    
     toast.success('Logged out successfully!', {
       position: 'bottom-right',
     });
+    
     navigate('/login');
   };
 
@@ -215,7 +213,6 @@ function Navbar() {
                 </IconButton>
               ) : (
                 <>
-                  {/* Wishlist Icon - DYNAMIC COUNT */}
                   <IconButton
                     color="inherit"
                     component={Link}
@@ -227,7 +224,6 @@ function Navbar() {
                     </Badge>
                   </IconButton>
 
-                  {/* Cart Icon - DYNAMIC COUNT */}
                   <IconButton
                     color="inherit"
                     component={Link}
@@ -244,7 +240,7 @@ function Navbar() {
                 <>
                   <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
                     <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32 }}>
-                      {user?.name?.[0] || 'U'}
+                      {user?.name?.[0] || user?.email?.[0] || 'U'}
                     </Avatar>
                   </IconButton>
                   <Menu
@@ -262,7 +258,6 @@ function Navbar() {
                       },
                     }}
                   >
-                    {/* User Info */}
                     <Box sx={{ px: 2, py: 1.5, bgcolor: 'grey.50' }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                         {user?.name || 'User'}
@@ -296,7 +291,6 @@ function Navbar() {
                       )}
                     </MenuItem>
                     
-                    {/* Admin Section */}
                     {isAdmin && (
                       <>
                         <Divider />
@@ -396,7 +390,6 @@ function Navbar() {
         }}
       >
         <Box sx={{ pt: 2 }}>
-          {/* Drawer Header */}
           <Box sx={{ px: 2, pb: 2 }}>
             <Typography
               variant="h6"
@@ -413,14 +406,14 @@ function Navbar() {
             {isLoggedIn && user && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
                 <Avatar sx={{ bgcolor: 'primary.main' }}>
-                  {user.name?.[0] || 'U'}
+                  {user.name?.[0] || user.email?.[0] || 'U'}
                 </Avatar>
                 <Box>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    {user.name}
+                    {user.name || 'User'}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {user.email}
+                    {user.email || ''}
                   </Typography>
                 </Box>
               </Box>
@@ -429,7 +422,6 @@ function Navbar() {
           
           <Divider />
 
-          {/* Navigation Menu */}
           <List>
             {menuItems.map((item) => (
               <ListItem
@@ -577,32 +569,29 @@ function Navbar() {
                 </ListItem>
               </>
             ) : (
-              <>
-                <ListItem
-                  button
-                  component={Link}
-                  to="/login"
-                  onClick={() => setMobileDrawerOpen(false)}
-                  sx={{
-                    borderRadius: 2,
-                    mx: 1,
-                    bgcolor: 'primary.main',
-                    color: 'white',
-                    '&:hover': {
-                      bgcolor: 'primary.dark',
-                    },
-                  }}
-                >
-                  <ListItemIcon sx={{ color: 'white' }}>
-                    <Person />
-                  </ListItemIcon>
-                  <ListItemText primary="Login / Register" primaryTypographyProps={{ fontWeight: 600 }} />
-                </ListItem>
-              </>
+              <ListItem
+                button
+                component={Link}
+                to="/login"
+                onClick={() => setMobileDrawerOpen(false)}
+                sx={{
+                  borderRadius: 2,
+                  mx: 1,
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '&:hover': {
+                    bgcolor: 'primary.dark',
+                  },
+                }}
+              >
+                <ListItemIcon sx={{ color: 'white' }}>
+                  <Person />
+                </ListItemIcon>
+                <ListItemText primary="Login / Register" primaryTypographyProps={{ fontWeight: 600 }} />
+              </ListItem>
             )}
           </List>
 
-          {/* Footer */}
           <Box sx={{ p: 2, mt: 'auto', bgcolor: 'grey.50' }}>
             <Typography variant="caption" color="text.secondary" display="block">
               © 2024 ShopHub
