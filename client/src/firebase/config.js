@@ -119,35 +119,58 @@ export const googleLogin = async () => {
 };
 
 // ============================================
+// PROFILE FUNCTIONS
+// ============================================
+
+// ✅ ADD THIS FUNCTION - This fixes the error!
+export const updateUserProfile = async (uid, data) => {
+  try {
+    const docRef = doc(db, 'users', uid);
+    await updateDoc(docRef, {
+      ...data,
+      updatedAt: serverTimestamp()
+    });
+    
+    if (data.name && auth.currentUser) {
+      await updateProfile(auth.currentUser, { displayName: data.name });
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Update profile error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const getUserProfile = async (uid) => {
+  try {
+    const docRef = doc(db, 'users', uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { success: true, data: docSnap.data() };
+    } else {
+      return { success: false, error: 'User not found' };
+    }
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// ============================================
 // PRODUCT FUNCTIONS
 // ============================================
 
-// Get all products
 export const getProducts = async (filters = {}) => {
   try {
     let q = collection(db, 'products');
     const queryConstraints = [];
     
-    if (filters.category) {
+    if (filters.category && filters.category !== 'all') {
       queryConstraints.push(where('category', '==', filters.category));
     }
-    if (filters.sort) {
-      queryConstraints.push(orderBy(filters.sort, 'desc'));
-    }
-    if (filters.search) {
-      // Note: Firestore doesn't support full-text search. Use Algolia for production.
-      // This is a simple workaround.
-      const allProducts = await getDocs(q);
-      let products = [];
-      allProducts.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        products = products.filter(p => 
-          p.name.toLowerCase().includes(searchLower) ||
-          p.description?.toLowerCase().includes(searchLower)
-        );
-      }
-      return { success: true, products };
+    
+    if (filters.sort === 'createdAt') {
+      queryConstraints.push(orderBy('createdAt', 'desc'));
     }
     
     if (queryConstraints.length > 0) {
@@ -163,22 +186,19 @@ export const getProducts = async (filters = {}) => {
   }
 };
 
-// Get single product
 export const getProduct = async (productId) => {
   try {
     const docRef = doc(db, 'products', productId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       return { success: true, product: { id: docSnap.id, ...docSnap.data() } };
-    } else {
-      return { success: false, error: 'Product not found' };
     }
+    return { success: false, error: 'Product not found' };
   } catch (error) {
     return { success: false, error: error.message };
   }
 };
 
-// Add product (Admin only)
 export const addProduct = async (productData) => {
   try {
     const docRef = await addDoc(collection(db, 'products'), {
@@ -193,7 +213,6 @@ export const addProduct = async (productData) => {
   }
 };
 
-// Update product (Admin only)
 export const updateProduct = async (productId, productData) => {
   try {
     const docRef = doc(db, 'products', productId);
@@ -204,7 +223,6 @@ export const updateProduct = async (productId, productData) => {
   }
 };
 
-// Delete product (Admin only)
 export const deleteProduct = async (productId) => {
   try {
     const docRef = doc(db, 'products', productId);
@@ -219,28 +237,24 @@ export const deleteProduct = async (productId) => {
 // CART FUNCTIONS
 // ============================================
 
-// Get user cart
 export const getCart = async (userId) => {
   try {
     const docRef = doc(db, 'cart', userId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       return { success: true, cart: docSnap.data().items || [] };
-    } else {
-      return { success: true, cart: [] };
     }
+    return { success: true, cart: [] };
   } catch (error) {
     return { success: false, error: error.message };
   }
 };
 
-// Add item to cart
 export const addToCart = async (userId, productId, quantity = 1) => {
   try {
     const cartRef = doc(db, 'cart', userId);
     const cartSnap = await getDoc(cartRef);
     
-    // Get product details
     const productResult = await getProduct(productId);
     if (!productResult.success) {
       return { success: false, error: 'Product not found' };
@@ -254,7 +268,6 @@ export const addToCart = async (userId, productId, quantity = 1) => {
       cartData = { userId, items: [] };
     }
     
-    // Check if item already exists
     const existingItem = cartData.items.find(item => item.productId === productId);
     if (existingItem) {
       existingItem.quantity += quantity;
@@ -275,35 +288,6 @@ export const addToCart = async (userId, productId, quantity = 1) => {
   }
 };
 
-// Update cart item quantity
-export const updateCartItem = async (userId, productId, quantity) => {
-  try {
-    const cartRef = doc(db, 'cart', userId);
-    const cartSnap = await getDoc(cartRef);
-    if (!cartSnap.exists()) {
-      return { success: false, error: 'Cart not found' };
-    }
-    
-    const cartData = cartSnap.data();
-    const itemIndex = cartData.items.findIndex(item => item.productId === productId);
-    if (itemIndex === -1) {
-      return { success: false, error: 'Item not found in cart' };
-    }
-    
-    if (quantity <= 0) {
-      cartData.items.splice(itemIndex, 1);
-    } else {
-      cartData.items[itemIndex].quantity = quantity;
-    }
-    
-    await setDoc(cartRef, cartData);
-    return { success: true, cart: cartData.items };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-// Remove from cart
 export const removeFromCart = async (userId, productId) => {
   try {
     const cartRef = doc(db, 'cart', userId);
@@ -311,7 +295,6 @@ export const removeFromCart = async (userId, productId) => {
     if (!cartSnap.exists()) {
       return { success: false, error: 'Cart not found' };
     }
-    
     const cartData = cartSnap.data();
     cartData.items = cartData.items.filter(item => item.productId !== productId);
     await setDoc(cartRef, cartData);
@@ -321,7 +304,6 @@ export const removeFromCart = async (userId, productId) => {
   }
 };
 
-// Clear cart
 export const clearCart = async (userId) => {
   try {
     const cartRef = doc(db, 'cart', userId);
@@ -336,22 +318,19 @@ export const clearCart = async (userId) => {
 // WISHLIST FUNCTIONS
 // ============================================
 
-// Get user wishlist
 export const getWishlist = async (userId) => {
   try {
     const docRef = doc(db, 'wishlist', userId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       return { success: true, wishlist: docSnap.data().products || [] };
-    } else {
-      return { success: true, wishlist: [] };
     }
+    return { success: true, wishlist: [] };
   } catch (error) {
     return { success: false, error: error.message };
   }
 };
 
-// Add to wishlist
 export const addToWishlist = async (userId, productId) => {
   try {
     const wishlistRef = doc(db, 'wishlist', userId);
@@ -376,7 +355,6 @@ export const addToWishlist = async (userId, productId) => {
   }
 };
 
-// Remove from wishlist
 export const removeFromWishlist = async (userId, productId) => {
   try {
     const wishlistRef = doc(db, 'wishlist', userId);
@@ -384,7 +362,6 @@ export const removeFromWishlist = async (userId, productId) => {
     if (!wishlistSnap.exists()) {
       return { success: false, error: 'Wishlist not found' };
     }
-    
     const wishlistData = wishlistSnap.data();
     wishlistData.products = wishlistData.products.filter(id => id !== productId);
     await setDoc(wishlistRef, wishlistData);
@@ -398,7 +375,6 @@ export const removeFromWishlist = async (userId, productId) => {
 // ORDER FUNCTIONS
 // ============================================
 
-// Create order
 export const createOrder = async (userId, orderData) => {
   try {
     const orderRef = await addDoc(collection(db, 'orders'), {
@@ -414,7 +390,6 @@ export const createOrder = async (userId, orderData) => {
   }
 };
 
-// Get user orders
 export const getOrders = async (userId) => {
   try {
     const q = query(
@@ -431,22 +406,19 @@ export const getOrders = async (userId) => {
   }
 };
 
-// Get single order
 export const getOrder = async (orderId) => {
   try {
     const docRef = doc(db, 'orders', orderId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       return { success: true, order: { id: docSnap.id, ...docSnap.data() } };
-    } else {
-      return { success: false, error: 'Order not found' };
     }
+    return { success: false, error: 'Order not found' };
   } catch (error) {
     return { success: false, error: error.message };
   }
 };
 
-// Update order status (Admin only)
 export const updateOrderStatus = async (orderId, status) => {
   try {
     const docRef = doc(db, 'orders', orderId);
@@ -464,7 +436,6 @@ export const updateOrderStatus = async (orderId, status) => {
 // ADMIN FUNCTIONS
 // ============================================
 
-// Get all orders (Admin only)
 export const getAllOrders = async () => {
   try {
     const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
@@ -477,7 +448,6 @@ export const getAllOrders = async () => {
   }
 };
 
-// Get all users (Admin only)
 export const getAllUsers = async () => {
   try {
     const snapshot = await getDocs(collection(db, 'users'));
@@ -489,7 +459,6 @@ export const getAllUsers = async () => {
   }
 };
 
-// Update user role (Admin only)
 export const updateUserRole = async (userId, role) => {
   try {
     const docRef = doc(db, 'users', userId);
