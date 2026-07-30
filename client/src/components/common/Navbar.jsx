@@ -280,23 +280,31 @@ function Navbar() {
                     <Divider />
                     
                     <MenuItem onClick={handleMenuClose} component={Link} to="/profile">
-                      <ListItemIcon><Person fontSize="small" /></ListItemIcon>
-                      Profile
+                      <ListItemIcon>
+                        <Person fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>Profile</ListItemText>
                     </MenuItem>
                     <MenuItem onClick={handleMenuClose} component={Link} to="/orders">
-                      <ListItemIcon><History fontSize="small" /></ListItemIcon>
-                      My Orders
+                      <ListItemIcon>
+                        <History fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>My Orders</ListItemText>
                     </MenuItem>
                     <MenuItem onClick={handleMenuClose} component={Link} to="/wishlist">
-                      <ListItemIcon><Favorite fontSize="small" /></ListItemIcon>
-                      Wishlist
+                      <ListItemIcon>
+                        <Favorite fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>Wishlist</ListItemText>
                       {wishlistCount > 0 && (
                         <Chip label={wishlistCount} size="small" color="secondary" sx={{ ml: 'auto' }} />
                       )}
                     </MenuItem>
                     <MenuItem onClick={handleMenuClose} component={Link} to="/cart">
-                      <ListItemIcon><ShoppingCart fontSize="small" /></ListItemIcon>
-                      Cart
+                      <ListItemIcon>
+                        <ShoppingCart fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>Cart</ListItemText>
                       {cartCount > 0 && (
                         <Chip label={cartCount} size="small" color="primary" sx={{ ml: 'auto' }} />
                       )}
@@ -309,39 +317,51 @@ function Navbar() {
                           Admin
                         </Typography>
                         <MenuItem onClick={handleMenuClose} component={Link} to="/admin">
-                          <ListItemIcon><Dashboard fontSize="small" /></ListItemIcon>
-                          Dashboard
+                          <ListItemIcon>
+                            <Dashboard fontSize="small" />
+                          </ListItemIcon>
+                          <ListItemText>Dashboard</ListItemText>
                         </MenuItem>
                         <MenuItem onClick={handleMenuClose} component={Link} to="/admin/products">
-                          <ListItemIcon><Store fontSize="small" /></ListItemIcon>
-                          Products
+                          <ListItemIcon>
+                            <Store fontSize="small" />
+                          </ListItemIcon>
+                          <ListItemText>Products</ListItemText>
                         </MenuItem>
                         <MenuItem onClick={handleMenuClose} component={Link} to="/admin/orders">
-                          <ListItemIcon><Receipt fontSize="small" /></ListItemIcon>
-                          Orders
+                          <ListItemIcon>
+                            <Receipt fontSize="small" />
+                          </ListItemIcon>
+                          <ListItemText>Orders</ListItemText>
                         </MenuItem>
                         <MenuItem onClick={handleMenuClose} component={Link} to="/admin/users">
-                          <ListItemIcon><People fontSize="small" /></ListItemIcon>
-                          Users
+                          <ListItemIcon>
+                            <People fontSize="small" />
+                          </ListItemIcon>
+                          <ListItemText>Users</ListItemText>
                         </MenuItem>
                       </>
                     )}
                     
                     <Divider />
                     <MenuItem onClick={handleMenuClose} component={Link} to="/settings">
-                      <ListItemIcon><Settings fontSize="small" /></ListItemIcon>
-                      Settings
+                      <ListItemIcon>
+                        <Settings fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>Settings</ListItemText>
                     </MenuItem>
                     <MenuItem onClick={handleMenuClose} component={Link} to="/help">
-                      <ListItemIcon><Help fontSize="small" /></ListItemIcon>
-                      Help & Support
+                      <ListItemIcon>
+                        <Help fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>Help & Support</ListItemText>
                     </MenuItem>
                     <Divider />
                     <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
                       <ListItemIcon sx={{ color: 'error.main' }}>
                         <ExitToApp fontSize="small" />
                       </ListItemIcon>
-                      Logout
+                      <ListItemText>Logout</ListItemText>
                     </MenuItem>
                   </Menu>
                 </>
@@ -478,7 +498,9 @@ function Navbar() {
                     },
                   }}
                 >
-                  <ListItemIcon><Person /></ListItemIcon>
+                  <ListItemIcon>
+                    <Person />
+                  </ListItemIcon>
                   <ListItemText primary="Profile" />
                 </ListItem>
                 <ListItem
@@ -494,7 +516,9 @@ function Navbar() {
                     },
                   }}
                 >
-                  <ListItemIcon><History /></ListItemIcon>
+                  <ListItemIcon>
+                    <History />
+                  </ListItemIcon>
                   <ListItemText primary="My Orders" />
                 </ListItem>
                 <ListItem
@@ -510,7 +534,9 @@ function Navbar() {
                     },
                   }}
                 >
-                  <ListItemIcon><Favorite /></ListItemIcon>
+                  <ListItemIcon>
+                    <Favorite />
+                  </ListItemIcon>
                   <ListItemText primary="Wishlist" />
                   {wishlistCount > 0 && (
                     <Chip label={wishlistCount} size="small" color="secondary" />
@@ -529,7 +555,9 @@ function Navbar() {
                     },
                   }}
                 >
-                  <ListItemIcon><ShoppingCart /></ListItemIcon>
+                  <ListItemIcon>
+                    <ShoppingCart />
+                  </ListItemIcon>
                   <ListItemText primary="Cart" />
                   {cartCount > 0 && (
                     <Chip label={cartCount} size="small" color="primary" />
@@ -551,7 +579,9 @@ function Navbar() {
                         },
                       }}
                     >
-                      <ListItemIcon><Dashboard /></ListItemIcon>
+                      <ListItemIcon>
+                        <Dashboard />
+                      </ListItemIcon>
                       <ListItemText primary="Admin Dashboard" />
                     </ListItem>
                   </>
@@ -562,37 +592,5 @@ function Navbar() {
                   onClick={() => {
                     setMobileDrawerOpen(false);
                     handleLogout();
-                  }}
-                  sx={{
-                    borderRadius: 2,
-                    mx: 1,
-                    color: 'error.main',
-                    '&:hover': {
-                      bgcolor: 'error.light',
-                    },
-                  }}
-                >
-                  <ListItemIcon sx={{ color: 'error.main' }}>
-                    <ExitToApp />
-                  </ListItemIcon>
-                  <ListItemText primary="Logout" />
-                </ListItem>
-              </>
-            ) : (
-              <ListItem
-                button
-                component={Link}
-                to="/login"
-                onClick={() => setMobileDrawerOpen(false)}
-                sx={{
-                  borderRadius: 2,
-                  mx: 1,
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  '&:hover': {
-                    bgcolor: 'primary.dark',
-                  },
-                }}
-              >
-                <ListItemIcon sx={{ color: 'white' }}>
+               
     
