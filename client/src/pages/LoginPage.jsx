@@ -22,9 +22,6 @@ import { toast } from 'react-toastify';
 import AuthLayout from '../components/auth/AuthLayout';
 import SocialLogin from '../components/auth/SocialLogin';
 
-// API URL - Your Render backend
-const API_URL = 'https://e-commerce-owv6.onrender.com/api';
-
 function LoginPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -75,7 +72,8 @@ function LoginPage() {
     setServerError('');
 
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
+      // ✅ HARDCODED URL - Direct call to backend
+      const response = await fetch('https://e-commerce-owv6.onrender.com/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,7 +90,6 @@ function LoginPage() {
         throw new Error(data.message || 'Login failed');
       }
 
-      // ✅ Save the actual user data from the API
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
@@ -101,7 +98,6 @@ function LoginPage() {
         autoClose: 2000,
       });
 
-      // Redirect after a short delay
       setTimeout(() => {
         navigate('/');
       }, 500);
@@ -126,14 +122,12 @@ function LoginPage() {
       alternateText="Don't have an account?"
     >
       <form onSubmit={handleSubmit}>
-        {/* Server Error */}
         {serverError && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {serverError}
           </Alert>
         )}
 
-        {/* Email Field */}
         <TextField
           fullWidth
           label="Email Address"
@@ -154,7 +148,6 @@ function LoginPage() {
           sx={{ mb: 3 }}
         />
 
-        {/* Password Field */}
         <TextField
           fullWidth
           label="Password"
@@ -185,7 +178,6 @@ function LoginPage() {
           sx={{ mb: 2 }}
         />
 
-        {/* Options */}
         <Box
           sx={{
             display: 'flex',
@@ -222,7 +214,6 @@ function LoginPage() {
           </Typography>
         </Box>
 
-        {/* Submit Button */}
         <Button
           fullWidth
           type="submit"
@@ -243,7 +234,6 @@ function LoginPage() {
           )}
         </Button>
 
-        {/* Social Login */}
         <SocialLogin />
       </form>
     </AuthLayout>
