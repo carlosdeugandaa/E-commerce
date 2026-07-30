@@ -14,6 +14,8 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
+import { addProduct, updateProduct } from '../firebase/config';
+import { toast } from 'react-toastify';
 
 function AdminProductForm({ product, onSubmit, onCancel }) {
   const [loading, setLoading] = useState(false);
@@ -27,7 +29,7 @@ function AdminProductForm({ product, onSubmit, onCancel }) {
     stock: product?.stock || '',
     brand: product?.brand || '',
     image: product?.image || '',
-    isFeatured: product?.isFeatured || false,
+    isActive: product?.isActive !== undefined ? product.isActive : true,
   });
   const [errors, setErrors] = useState({});
 
@@ -35,7 +37,7 @@ function AdminProductForm({ product, onSubmit, onCancel }) {
     const { name, value, checked } = e.target;
     setFormData({
       ...formData,
-      [name]: name === 'isFeatured' ? checked : value,
+      [name]: name === 'isActive' ? checked : value,
     });
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
@@ -60,21 +62,37 @@ function AdminProductForm({ product, onSubmit, onCancel }) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
     setLoading(true);
-    setTimeout(() => {
-      onSubmit({
-        ...formData,
-        price: parseFloat(formData.price),
-        originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : null,
-        discount: parseInt(formData.discount) || 0,
-        stock: parseInt(formData.stock),
-      });
-      setLoading(false);
-    }, 500);
+    
+    const productData = {
+      ...formData,
+      price: parseFloat(formData.price),
+      originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : null,
+      discount: parseInt(formData.discount) || 0,
+      stock: parseInt(formData.stock),
+    };
+
+    let result;
+    if (product) {
+      // Update existing product
+      result = await updateProduct(product.id, productData);
+    } else {
+      // Add new product
+      result = await addProduct(productData);
+    }
+
+    setLoading(false);
+
+    if (result.success) {
+      toast.success(product ? 'Product updated successfully!' : 'Product added successfully!');
+      onSubmit();
+    } else {
+      toast.error(result.error || 'Failed to save product');
+    }
   };
 
   return (
@@ -209,12 +227,12 @@ function AdminProductForm({ product, onSubmit, onCancel }) {
           <FormControlLabel
             control={
               <Switch
-                name="isFeatured"
-                checked={formData.isFeatured}
+                name="isActive"
+                checked={formData.isActive}
                 onChange={handleChange}
               />
             }
-            label="Featured Product"
+            label="Active Product"
           />
         </Grid>
         <Grid item xs={12}>
