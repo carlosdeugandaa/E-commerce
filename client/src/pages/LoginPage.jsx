@@ -21,6 +21,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import AuthLayout from '../components/auth/AuthLayout';
 import SocialLogin from '../components/auth/SocialLogin';
+import { loginUser } from '../firebase/config';
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -64,9 +65,9 @@ function LoginPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ CRITICAL FIX: Added e.preventDefault()
+  // ✅ Firebase Login
   const handleSubmit = async (e) => {
-    e.preventDefault();  // ← THIS PREVENTS GET REQUEST TO ROOT
+    e.preventDefault();
 
     if (!validateForm()) return;
 
@@ -74,27 +75,17 @@ function LoginPage() {
     setServerError('');
 
     try {
-      const response = await fetch('https://e-commerce-owv6.onrender.com/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
+      const result = await loginUser(formData.email, formData.password);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
+      if (!result.success) {
+        throw new Error(result.error);
       }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      // Save user data
+      localStorage.setItem('token', result.user.uid);
+      localStorage.setItem('user', JSON.stringify(result.user));
 
-      toast.success(`Welcome back, ${data.user.name}!`, {
+      toast.success(`Welcome back, ${result.user.name || 'User'}!`, {
         position: 'bottom-right',
         autoClose: 2000,
       });
@@ -104,7 +95,6 @@ function LoginPage() {
       }, 500);
 
     } catch (error) {
-      console.error('Login error:', error);
       setServerError(error.message || 'Invalid email or password');
       toast.error(error.message || 'Invalid email or password', {
         position: 'bottom-right',
