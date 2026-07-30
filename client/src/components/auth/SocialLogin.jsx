@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Button, Divider, Typography } from '@mui/material';
-import { Google, Facebook, Apple } from '@mui/icons-material';
+import { Google } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { googleLogin } from '../../firebase/config';
@@ -15,6 +15,8 @@ function SocialLogin() {
       if (result.success) {
         localStorage.setItem('token', result.user.uid);
         localStorage.setItem('user', JSON.stringify(result.user));
+        // Force immediate update
+        window.dispatchEvent(new Event('storage'));
         toast.success(`Welcome ${result.user.name || 'User'}!`, {
           position: 'bottom-right',
         });
@@ -32,12 +34,6 @@ function SocialLogin() {
     }
   };
 
-  const handleSocialLogin = (provider) => {
-    toast.info(`Redirecting to ${provider} login...`, {
-      position: 'bottom-right',
-    });
-  };
-
   return (
     <Box sx={{ mt: 3 }}>
       <Divider sx={{ mb: 3 }}>
@@ -46,7 +42,7 @@ function SocialLogin() {
         </Typography>
       </Divider>
 
-      <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
         <Button
           fullWidth
           variant="outlined"
@@ -57,6 +53,7 @@ function SocialLogin() {
             borderRadius: 2,
             borderColor: 'grey.300',
             color: 'text.primary',
+            maxWidth: '300px',
             '&:hover': {
               borderColor: 'primary.main',
               bgcolor: 'primary.light',
@@ -64,47 +61,7 @@ function SocialLogin() {
             },
           }}
         >
-          Google
-        </Button>
-
-        <Button
-          fullWidth
-          variant="outlined"
-          startIcon={<Facebook />}
-          onClick={() => handleSocialLogin('Facebook')}
-          sx={{
-            py: 1.5,
-            borderRadius: 2,
-            borderColor: 'grey.300',
-            color: 'text.primary',
-            '&:hover': {
-              borderColor: '#1877f2',
-              bgcolor: '#1877f210',
-              color: '#1877f2',
-            },
-          }}
-        >
-          Facebook
-        </Button>
-
-        <Button
-          fullWidth
-          variant="outlined"
-          startIcon={<Apple />}
-          onClick={() => handleSocialLogin('Apple')}
-          sx={{
-            py: 1.5,
-            borderRadius: 2,
-            borderColor: 'grey.300',
-            color: 'text.primary',
-            '&:hover': {
-              borderColor: '#000',
-              bgcolor: '#00000010',
-              color: '#000',
-            },
-          }}
-        >
-          Apple
+          Sign in with Google
         </Button>
       </Box>
     </Box>
