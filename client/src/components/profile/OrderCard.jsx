@@ -32,6 +32,17 @@ import { toast } from 'react-toastify';
 function OrderCard({ order }) {
   const [expanded, setExpanded] = useState(false);
 
+  // Format date
+  const formatDate = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'delivered':
@@ -101,10 +112,10 @@ function OrderCard({ order }) {
       <Grid container spacing={2} alignItems="center">
         <Grid item xs={12} sm={3}>
           <Typography variant="caption" color="text.secondary">
-            Order #{order.id}
+            Order #{order.id || 'N/A'}
           </Typography>
           <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            {order.date}
+            {formatDate(order.createdAt)}
           </Typography>
         </Grid>
         <Grid item xs={6} sm={3}>
@@ -112,7 +123,7 @@ function OrderCard({ order }) {
             Total
           </Typography>
           <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            ${order.total.toFixed(2)}
+            ${order.totalAmount?.toFixed(2) || '0.00'}
           </Typography>
         </Grid>
         <Grid item xs={6} sm={3}>
@@ -120,9 +131,9 @@ function OrderCard({ order }) {
             Status
           </Typography>
           <Chip
-            icon={getStatusIcon(order.status)}
-            label={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-            color={getStatusColor(order.status)}
+            icon={getStatusIcon(order.orderStatus)}
+            label={order.orderStatus ? order.orderStatus.charAt(0).toUpperCase() + order.orderStatus.slice(1) : 'Pending'}
+            color={getStatusColor(order.orderStatus)}
             size="small"
             sx={{ mt: 0.5 }}
           />
@@ -144,16 +155,16 @@ function OrderCard({ order }) {
       <Box sx={{ mt: 2, mb: 1 }}>
         <LinearProgress
           variant="determinate"
-          value={getStatusProgress(order.status)}
+          value={getStatusProgress(order.orderStatus)}
           sx={{
             height: 6,
             borderRadius: 3,
             bgcolor: 'grey.200',
             '& .MuiLinearProgress-bar': {
               bgcolor:
-                order.status === 'cancelled'
+                order.orderStatus === 'cancelled'
                   ? 'error.main'
-                  : order.status === 'delivered'
+                  : order.orderStatus === 'delivered'
                   ? 'success.main'
                   : 'primary.main',
             },
@@ -183,29 +194,39 @@ function OrderCard({ order }) {
               </TableRow>
             </TableHead>
             <TableBody>
-              {order.items.map((item, index) => (
-                <TableRow key={index}>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Box
-                        component="img"
-                        src={item.image}
-                        alt={item.name}
-                        sx={{
-                          width: 40,
-                          height: 40,
-                          objectFit: 'cover',
-                          borderRadius: 1,
-                        }}
-                      />
-                      <Typography variant="body2">{item.name}</Typography>
-                    </Box>
+              {order.items && order.items.length > 0 ? (
+                order.items.map((item, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Box
+                          component="img"
+                          src={item.image || 'https://via.placeholder.com/40'}
+                          alt={item.name}
+                          sx={{
+                            width: 40,
+                            height: 40,
+                            objectFit: 'cover',
+                            borderRadius: 1,
+                          }}
+                        />
+                        <Typography variant="body2">{item.name}</Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell align="center">{item.quantity}</TableCell>
+                    <TableCell align="right">${item.price?.toFixed(2) || '0.00'}</TableCell>
+                    <TableCell align="right">${((item.price || 0) * (item.quantity || 0)).toFixed(2)}</TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={4} align="center">
+                    <Typography variant="body2" color="text.secondary">
+                      No items in this order
+                    </Typography>
                   </TableCell>
-                  <TableCell align="center">{item.quantity}</TableCell>
-                  <TableCell align="right">${item.price.toFixed(2)}</TableCell>
-                  <TableCell align="right">${(item.price * item.quantity).toFixed(2)}</TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </TableContainer>
@@ -219,7 +240,19 @@ function OrderCard({ order }) {
               Shipping Address
             </Typography>
             <Typography variant="body2" sx={{ mt: 0.5 }}>
-              {order.address}
+              {order.shippingAddress ? (
+                <>
+                  {order.shippingAddress.fullName || order.shippingAddress.name || 'N/A'}<br />
+                  {order.shippingAddress.addressLine1 || 'N/A'}<br />
+                  {order.shippingAddress.city && order.shippingAddress.state && (
+                    `${order.shippingAddress.city}, ${order.shippingAddress.state} ${order.shippingAddress.zipCode || ''}`
+                  )}
+                  <br />
+                  {order.shippingAddress.country || 'N/A'}
+                </>
+              ) : (
+                'No shipping address provided'
+              )}
             </Typography>
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -227,7 +260,13 @@ function OrderCard({ order }) {
               Payment Method
             </Typography>
             <Typography variant="body2" sx={{ mt: 0.5 }}>
-              {order.paymentMethod}
+              {order.paymentMethod || 'N/A'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+              Payment Status
+            </Typography>
+            <Typography variant="body2">
+              {order.paymentStatus || 'Pending'}
             </Typography>
           </Grid>
           {order.trackingNumber && (
@@ -252,7 +291,7 @@ function OrderCard({ order }) {
           >
             Track Order
           </Button>
-          {order.status !== 'cancelled' && order.status !== 'delivered' && (
+          {order.orderStatus !== 'cancelled' && order.orderStatus !== 'delivered' && (
             <Button
               size="small"
               variant="outlined"
@@ -263,7 +302,7 @@ function OrderCard({ order }) {
               Cancel Order
             </Button>
           )}
-          {order.status === 'delivered' && (
+          {order.orderStatus === 'delivered' && (
             <Button
               size="small"
               variant="contained"
