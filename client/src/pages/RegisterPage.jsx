@@ -28,6 +28,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import AuthLayout from '../components/auth/AuthLayout';
 import SocialLogin from '../components/auth/SocialLogin';
+import { registerUser } from '../firebase/config';
 
 function RegisterPage() {
   const navigate = useNavigate();
@@ -107,9 +108,9 @@ function RegisterPage() {
     setActiveStep((prev) => prev - 1);
   };
 
-  // ✅ CRITICAL FIX: Added e.preventDefault()
+  // ✅ Firebase Registration
   const handleSubmit = async (e) => {
-    e.preventDefault();  // ← THIS PREVENTS GET REQUEST TO ROOT
+    e.preventDefault();
 
     if (!validateStep(2)) return;
     
@@ -117,22 +118,14 @@ function RegisterPage() {
     setServerError('');
 
     try {
-      const response = await fetch('https://e-commerce-owv6.onrender.com/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
+      const result = await registerUser(
+        formData.email,
+        formData.password,
+        formData.name
+      );
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
+      if (!result.success) {
+        throw new Error(result.error);
       }
 
       toast.success('Registration successful! Please login.', {
@@ -145,7 +138,6 @@ function RegisterPage() {
       }, 1500);
 
     } catch (error) {
-      console.error('Registration error:', error);
       setServerError(error.message || 'Registration failed. Please try again.');
       toast.error(error.message || 'Registration failed. Please try again.', {
         position: 'bottom-right',
