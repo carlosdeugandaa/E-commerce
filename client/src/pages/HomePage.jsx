@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Grid,
@@ -19,12 +19,44 @@ import {
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import ProductGrid from '../components/products/ProductGrid';
-import { mockProducts, mockCategories } from '../utils/mockData';
+import { getProducts } from '../firebase/config'; // ✅ Use Firebase
 
 function HomePage() {
   const theme = useTheme();
-  const featuredProducts = mockProducts.filter(p => p.isFeatured).slice(0, 4);
-  const latestProducts = mockProducts.slice(0, 6);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [latestProducts, setLatestProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      const result = await getProducts();
+      if (result.success) {
+        // Featured products (first 4)
+        setFeaturedProducts(result.products.filter(p => p.isFeatured).slice(0, 4));
+        // Latest products (first 6)
+        setLatestProducts(result.products.slice(0, 6));
+      }
+      setLoading(false);
+    };
+    loadProducts();
+  }, []);
+
+  // Categories - keep as is (they don't need Firebase)
+  const categories = [
+    { id: 'electronics', name: 'Electronics', icon: '💻', count: 0 },
+    { id: 'fashion', name: 'Fashion', icon: '👕', count: 0 },
+    { id: 'home', name: 'Home & Kitchen', icon: '🏠', count: 0 },
+    { id: 'beauty', name: 'Beauty', icon: '💄', count: 0 },
+    { id: 'sports', name: 'Sports', icon: '⚽', count: 0 },
+  ];
+
+  if (loading) {
+    return (
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Typography>Loading products...</Typography>
+      </Container>
+    );
+  }
 
   return (
     <Box sx={{ overflow: 'hidden' }}>
@@ -97,30 +129,6 @@ function HomePage() {
             </Grid>
           </Grid>
         </Container>
-
-        {/* Decorative elements */}
-        <Box
-          sx={{
-            position: 'absolute',
-            top: -100,
-            right: -100,
-            width: 400,
-            height: 400,
-            borderRadius: '50%',
-            bgcolor: 'rgba(255,255,255,0.05)',
-          }}
-        />
-        <Box
-          sx={{
-            position: 'absolute',
-            bottom: -150,
-            left: -150,
-            width: 500,
-            height: 500,
-            borderRadius: '50%',
-            bgcolor: 'rgba(255,255,255,0.05)',
-          }}
-        />
       </Box>
 
       {/* Features Section */}
@@ -174,7 +182,7 @@ function HomePage() {
             View All
           </Button>
         </Box>
-        <ProductGrid products={featuredProducts} />
+        <ProductGrid products={featuredProducts} loading={loading} />
       </Container>
 
       {/* Category Showcase */}
@@ -184,7 +192,7 @@ function HomePage() {
             Shop by Category
           </Typography>
           <Grid container spacing={3}>
-            {mockCategories.map((category, index) => (
+            {categories.map((category, index) => (
               <Grid item xs={6} sm={4} md={2.4} key={category.id}>
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -211,9 +219,6 @@ function HomePage() {
                       <Typography variant="body1" fontWeight={600}>
                         {category.name}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {category.count} items
-                      </Typography>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -228,7 +233,7 @@ function HomePage() {
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 4 }}>
           New Arrivals
         </Typography>
-        <ProductGrid products={latestProducts} compact />
+        <ProductGrid products={latestProducts} loading={loading} compact />
       </Container>
     </Box>
   );
