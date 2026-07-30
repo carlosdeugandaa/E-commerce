@@ -30,12 +30,14 @@ import {
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '../components/products/ProductCard';
-import { mockProducts, mockCategories } from '../utils/mockData';
+import { getProducts } from '../firebase/config';
 
 function ProductListing() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // State for filters
   const [filters, setFilters] = useState({
@@ -48,26 +50,37 @@ function ProductListing() {
     onSale: false,
   });
 
-  const [filteredProducts, setFilteredProducts] = useState(mockProducts);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [page, setPage] = useState(1);
   const productsPerPage = 12;
 
+  // Load products from Firestore
+  useEffect(() => {
+    const loadProducts = async () => {
+      setLoading(true);
+      const result = await getProducts({
+        category: filters.category !== 'all' ? filters.category : undefined,
+        sort: filters.sortBy === 'newest' ? 'createdAt' : undefined,
+      });
+      if (result.success) {
+        setProducts(result.products);
+      }
+      setLoading(false);
+    };
+    loadProducts();
+  }, [filters.category, filters.sortBy]);
+
   // Filter products
   useEffect(() => {
-    let result = [...mockProducts];
+    let result = [...products];
 
     // Search filter
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
       result = result.filter(p => 
         p.name.toLowerCase().includes(searchLower) ||
-        p.description.toLowerCase().includes(searchLower)
+        p.description?.toLowerCase().includes(searchLower)
       );
-    }
-
-    // Category filter
-    if (filters.category !== 'all') {
-      result = result.filter(p => p.category.toLowerCase() === filters.category);
     }
 
     // Price range filter
@@ -111,7 +124,7 @@ function ProductListing() {
 
     setFilteredProducts(result);
     setPage(1);
-  }, [filters]);
+  }, [products, filters]);
 
   // Pagination
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
@@ -154,11 +167,11 @@ function ProductListing() {
           label="Category"
         >
           <MenuItem value="all">All Categories</MenuItem>
-          {mockCategories.map(cat => (
-            <MenuItem key={cat.id} value={cat.id}>
-              {cat.icon} {cat.name}
-            </MenuItem>
-          ))}
+          <MenuItem value="electronics">Electronics</MenuItem>
+          <MenuItem value="fashion">Fashion</MenuItem>
+          <MenuItem value="home">Home & Kitchen</MenuItem>
+          <MenuItem value="beauty">Beauty</MenuItem>
+          <MenuItem value="sports">Sports</MenuItem>
         </Select>
       </FormControl>
 
@@ -228,7 +241,7 @@ function ProductListing() {
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
             {filters.category !== 'all' && (
               <Chip
-                label={`Category: ${mockCategories.find(c => c.id === filters.category)?.name}`}
+                label={`Category: ${filters.category}`}
                 onDelete={() => setFilters({ ...filters, category: 'all' })}
                 size="small"
               />
@@ -259,6 +272,14 @@ function ProductListing() {
       )}
     </Box>
   );
+
+  if (loading) {
+    return (
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Typography>Loading products...</Typography>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
