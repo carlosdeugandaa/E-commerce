@@ -65,7 +65,6 @@ function LoginPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ Firebase Login
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -84,6 +83,9 @@ function LoginPage() {
       // Save user data
       localStorage.setItem('token', result.user.uid);
       localStorage.setItem('user', JSON.stringify(result.user));
+
+      // ✅ FORCE IMMEDIATE UPDATE
+      window.dispatchEvent(new Event('storage'));
 
       toast.success(`Welcome back, ${result.user.name || 'User'}!`, {
         position: 'bottom-right',
