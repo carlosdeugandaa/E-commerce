@@ -54,25 +54,20 @@ function Navbar() {
   const [user, setUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
 
-  // Load counts from localStorage
   useEffect(() => {
     const updateCounts = () => {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
       setCartCount(cart.length);
-      
       const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
       setWishlistCount(wishlist.length);
     };
-
     updateCounts();
     window.addEventListener('storage', updateCounts);
     window.addEventListener('cartUpdated', updateCounts);
     window.addEventListener('wishlistUpdated', updateCounts);
-
     return () => {
       window.removeEventListener('storage', updateCounts);
       window.removeEventListener('cartUpdated', updateCounts);
@@ -80,7 +75,6 @@ function Navbar() {
     };
   }, []);
 
-  // Load user from localStorage with storage event listener
   useEffect(() => {
     const loadUser = () => {
       const userData = localStorage.getItem('user');
@@ -91,7 +85,6 @@ function Navbar() {
           setIsLoggedIn(true);
           setIsAdmin(parsedUser.role === 'admin');
         } catch (error) {
-          console.error('Error parsing user data:', error);
           localStorage.removeItem('user');
           setUser(null);
           setIsLoggedIn(false);
@@ -103,10 +96,8 @@ function Navbar() {
         setIsAdmin(false);
       }
     };
-
     loadUser();
     window.addEventListener('storage', loadUser);
-
     return () => {
       window.removeEventListener('storage', loadUser);
     };
@@ -132,19 +123,13 @@ function Navbar() {
   const handleLogout = async () => {
     handleMenuClose();
     await logoutUser();
-    
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
     setIsLoggedIn(false);
     setIsAdmin(false);
-    
     window.dispatchEvent(new Event('storage'));
-    
-    toast.success('Logged out successfully!', {
-      position: 'bottom-right',
-    });
-    
+    toast.success('Logged out successfully!');
     navigate('/login');
   };
 
@@ -165,7 +150,6 @@ function Navbar() {
                 <MenuIcon />
               </IconButton>
             )}
-
             <Typography
               variant="h5"
               component={Link}
@@ -183,16 +167,11 @@ function Navbar() {
             >
               🛍️ ShopHub
             </Typography>
-
             {!isMobile && (
               <Box
                 component="form"
                 onSubmit={handleSearch}
-                sx={{
-                  flexGrow: 1,
-                  maxWidth: '500px',
-                  mx: 4,
-                }}
+                sx={{ flexGrow: 1, maxWidth: '500px', mx: 4 }}
               >
                 <TextField
                   fullWidth
@@ -216,7 +195,6 @@ function Navbar() {
                 />
               </Box>
             )}
-
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {isMobile ? (
                 <IconButton onClick={handleSearch}>
@@ -234,7 +212,6 @@ function Navbar() {
                       <Favorite />
                     </Badge>
                   </IconButton>
-
                   <IconButton
                     color="inherit"
                     component={Link}
@@ -246,7 +223,6 @@ function Navbar() {
                   </IconButton>
                 </>
               )}
-
               {isLoggedIn ? (
                 <>
                   <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
@@ -278,38 +254,28 @@ function Navbar() {
                       </Typography>
                     </Box>
                     <Divider />
-                    
                     <MenuItem onClick={handleMenuClose} component={Link} to="/profile">
-                      <ListItemIcon>
-                        <Person fontSize="small" />
-                      </ListItemIcon>
+                      <ListItemIcon><Person fontSize="small" /></ListItemIcon>
                       <ListItemText>Profile</ListItemText>
                     </MenuItem>
                     <MenuItem onClick={handleMenuClose} component={Link} to="/orders">
-                      <ListItemIcon>
-                        <History fontSize="small" />
-                      </ListItemIcon>
+                      <ListItemIcon><History fontSize="small" /></ListItemIcon>
                       <ListItemText>My Orders</ListItemText>
                     </MenuItem>
                     <MenuItem onClick={handleMenuClose} component={Link} to="/wishlist">
-                      <ListItemIcon>
-                        <Favorite fontSize="small" />
-                      </ListItemIcon>
+                      <ListItemIcon><Favorite fontSize="small" /></ListItemIcon>
                       <ListItemText>Wishlist</ListItemText>
                       {wishlistCount > 0 && (
                         <Chip label={wishlistCount} size="small" color="secondary" sx={{ ml: 'auto' }} />
                       )}
                     </MenuItem>
                     <MenuItem onClick={handleMenuClose} component={Link} to="/cart">
-                      <ListItemIcon>
-                        <ShoppingCart fontSize="small" />
-                      </ListItemIcon>
+                      <ListItemIcon><ShoppingCart fontSize="small" /></ListItemIcon>
                       <ListItemText>Cart</ListItemText>
                       {cartCount > 0 && (
                         <Chip label={cartCount} size="small" color="primary" sx={{ ml: 'auto' }} />
                       )}
                     </MenuItem>
-                    
                     {isAdmin && (
                       <>
                         <Divider />
@@ -317,43 +283,30 @@ function Navbar() {
                           Admin
                         </Typography>
                         <MenuItem onClick={handleMenuClose} component={Link} to="/admin">
-                          <ListItemIcon>
-                            <Dashboard fontSize="small" />
-                          </ListItemIcon>
+                          <ListItemIcon><Dashboard fontSize="small" /></ListItemIcon>
                           <ListItemText>Dashboard</ListItemText>
                         </MenuItem>
                         <MenuItem onClick={handleMenuClose} component={Link} to="/admin/products">
-                          <ListItemIcon>
-                            <Store fontSize="small" />
-                          </ListItemIcon>
+                          <ListItemIcon><Store fontSize="small" /></ListItemIcon>
                           <ListItemText>Products</ListItemText>
                         </MenuItem>
                         <MenuItem onClick={handleMenuClose} component={Link} to="/admin/orders">
-                          <ListItemIcon>
-                            <Receipt fontSize="small" />
-                          </ListItemIcon>
+                          <ListItemIcon><Receipt fontSize="small" /></ListItemIcon>
                           <ListItemText>Orders</ListItemText>
                         </MenuItem>
                         <MenuItem onClick={handleMenuClose} component={Link} to="/admin/users">
-                          <ListItemIcon>
-                            <People fontSize="small" />
-                          </ListItemIcon>
+                          <ListItemIcon><People fontSize="small" /></ListItemIcon>
                           <ListItemText>Users</ListItemText>
                         </MenuItem>
                       </>
                     )}
-                    
                     <Divider />
                     <MenuItem onClick={handleMenuClose} component={Link} to="/settings">
-                      <ListItemIcon>
-                        <Settings fontSize="small" />
-                      </ListItemIcon>
+                      <ListItemIcon><Settings fontSize="small" /></ListItemIcon>
                       <ListItemText>Settings</ListItemText>
                     </MenuItem>
                     <MenuItem onClick={handleMenuClose} component={Link} to="/help">
-                      <ListItemIcon>
-                        <Help fontSize="small" />
-                      </ListItemIcon>
+                      <ListItemIcon><Help fontSize="small" /></ListItemIcon>
                       <ListItemText>Help & Support</ListItemText>
                     </MenuItem>
                     <Divider />
@@ -379,7 +332,6 @@ function Navbar() {
               )}
             </Box>
           </Toolbar>
-
           {isMobile && (
             <Box component="form" onSubmit={handleSearch} sx={{ px: 2, pb: 1 }}>
               <TextField
@@ -407,7 +359,6 @@ function Navbar() {
         </Container>
       </AppBar>
 
-      {/* Mobile Drawer */}
       <Drawer
         anchor="left"
         open={mobileDrawerOpen}
@@ -449,9 +400,7 @@ function Navbar() {
               </Box>
             )}
           </Box>
-          
           <Divider />
-
           <List>
             {menuItems.map((item) => (
               <ListItem
@@ -480,9 +429,7 @@ function Navbar() {
                 )}
               </ListItem>
             ))}
-
             <Divider sx={{ my: 1 }} />
-
             {isLoggedIn ? (
               <>
                 <ListItem
@@ -498,9 +445,7 @@ function Navbar() {
                     },
                   }}
                 >
-                  <ListItemIcon>
-                    <Person />
-                  </ListItemIcon>
+                  <ListItemIcon><Person /></ListItemIcon>
                   <ListItemText primary="Profile" />
                 </ListItem>
                 <ListItem
@@ -516,9 +461,7 @@ function Navbar() {
                     },
                   }}
                 >
-                  <ListItemIcon>
-                    <History />
-                  </ListItemIcon>
+                  <ListItemIcon><History /></ListItemIcon>
                   <ListItemText primary="My Orders" />
                 </ListItem>
                 <ListItem
@@ -534,9 +477,7 @@ function Navbar() {
                     },
                   }}
                 >
-                  <ListItemIcon>
-                    <Favorite />
-                  </ListItemIcon>
+                  <ListItemIcon><Favorite /></ListItemIcon>
                   <ListItemText primary="Wishlist" />
                   {wishlistCount > 0 && (
                     <Chip label={wishlistCount} size="small" color="secondary" />
@@ -555,9 +496,7 @@ function Navbar() {
                     },
                   }}
                 >
-                  <ListItemIcon>
-                    <ShoppingCart />
-                  </ListItemIcon>
+                  <ListItemIcon><ShoppingCart /></ListItemIcon>
                   <ListItemText primary="Cart" />
                   {cartCount > 0 && (
                     <Chip label={cartCount} size="small" color="primary" />
@@ -579,9 +518,7 @@ function Navbar() {
                         },
                       }}
                     >
-                      <ListItemIcon>
-                        <Dashboard />
-                      </ListItemIcon>
+                      <ListItemIcon><Dashboard /></ListItemIcon>
                       <ListItemText primary="Admin Dashboard" />
                     </ListItem>
                   </>
@@ -592,5 +529,67 @@ function Navbar() {
                   onClick={() => {
                     setMobileDrawerOpen(false);
                     handleLogout();
+                  }}
+                  sx={{
+                    borderRadius: 2,
+                    mx: 1,
+                    color: 'error.main',
+                    '&:hover': {
+                      bgcolor: 'error.light',
+                    },
+                  }}
+                >
+                  <ListItemIcon sx={{ color: 'error.main' }}>
+                    <ExitToApp />
+                  </ListItemIcon>
+                  <ListItemText primary="Logout" />
+                </ListItem>
+              </>
+            ) : (
+              <ListItem
+                button
+                component={Link}
+                to="/login"
+                onClick={() => setMobileDrawerOpen(false)}
+                sx={{
+                  borderRadius: 2,
+                  mx: 1,
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '&:hover': {
+                    bgcolor: 'primary.dark',
+                  },
+                }}
+              >
+                <ListItemIcon sx={{ color: 'white' }}>
+                  <Person />
+                </ListItemIcon>
+                <ListItemText primary="Login / Register" primaryTypographyProps={{ fontWeight: 600 }} />
+              </ListItem>
+            )}
+          </List>
+          <Box sx={{ p: 2, mt: 'auto', bgcolor: 'grey.50' }}>
+            <Typography variant="caption" color="text.secondary" display="block">
+              © 2024 ShopHub
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+              <Typography variant="caption" color="text.secondary">
+                Help
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Privacy
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Terms
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      </Drawer>
+    </>
+  );
+}
+
+export default Navbar;
                
     
