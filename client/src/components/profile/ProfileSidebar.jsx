@@ -24,6 +24,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { logoutUser } from '../../firebase/config';
 
 function ProfileSidebar({ activeTab, onTabChange, user }) {
   const navigate = useNavigate();
@@ -33,17 +34,15 @@ function ProfileSidebar({ activeTab, onTabChange, user }) {
     { id: 'orders', label: 'My Orders', icon: <ShoppingBag /> },
     { id: 'wishlist', label: 'Wishlist', icon: <Favorite /> },
     { id: 'payments', label: 'Payment Methods', icon: <CreditCard /> },
-    { id: 'notifications', label: 'Notifications', icon: <Notifications />, badge: 3 },
+    { id: 'notifications', label: 'Notifications', icon: <Notifications /> },
     { id: 'settings', label: 'Settings', icon: <Settings /> },
   ];
 
-  const handleLogout = () => {
-    toast.success('Logged out successfully!', {
-      position: 'bottom-right',
-    });
-    // Clear auth tokens
+  const handleLogout = async () => {
+    await logoutUser();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    toast.success('Logged out successfully!');
     navigate('/login');
   };
 
@@ -78,10 +77,10 @@ function ProfileSidebar({ activeTab, onTabChange, user }) {
           </Avatar>
         </Badge>
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          {user?.name || 'John Doe'}
+          {user?.name || 'User'}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {user?.email || 'john@example.com'}
+          {user?.email || 'user@example.com'}
         </Typography>
         <Chip
           label="Member"
@@ -131,14 +130,6 @@ function ProfileSidebar({ activeTab, onTabChange, user }) {
                   fontWeight: activeTab === item.id ? 600 : 400,
                 }}
               />
-              {item.badge && (
-                <Chip
-                  label={item.badge}
-                  size="small"
-                  color="primary"
-                  sx={{ height: 20, fontSize: '0.65rem' }}
-                />
-              )}
             </ListItemButton>
           </ListItem>
         ))}
