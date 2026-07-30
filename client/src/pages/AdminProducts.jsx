@@ -43,7 +43,7 @@ import {
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import AdminProductForm from './AdminProductForm';
-import { mockProducts } from '../utils/mockData';
+import { getProducts, deleteProduct } from '../firebase/config';
 
 function AdminProducts() {
   const theme = useTheme();
@@ -60,18 +60,26 @@ function AdminProducts() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const itemsPerPage = 10;
 
-  // Load products
+  // Load products from Firestore
+  const loadProducts = async () => {
+    setLoading(true);
+    const result = await getProducts();
+    if (result.success) {
+      setProducts(result.products);
+    } else {
+      toast.error('Failed to load products');
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    setTimeout(() => {
-      setProducts(mockProducts);
-      setLoading(false);
-    }, 500);
+    loadProducts();
   }, []);
 
   // Filter products
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
+                         product.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'all' || product.category === filterCategory;
     return matchesSearch && matchesCategory;
   });
@@ -109,47 +117,31 @@ function AdminProducts() {
     setDeleteDialogOpen(true);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (productToDelete) {
-      setProducts(products.filter(p => p.id !== productToDelete.id));
-      setSnackbar({
-        open: true,
-        message: `${productToDelete.name} deleted successfully!`,
-        severity: 'success',
-      });
+      const result = await deleteProduct(productToDelete.id);
+      if (result.success) {
+        setProducts(products.filter(p => p.id !== productToDelete.id));
+        setSnackbar({
+          open: true,
+          message: `${productToDelete.name} deleted successfully!`,
+          severity: 'success',
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: 'Failed to delete product',
+          severity: 'error',
+        });
+      }
       setDeleteDialogOpen(false);
       setProductToDelete(null);
     }
   };
 
-  const handleFormSubmit = (productData) => {
-    if (selectedProduct) {
-      // Edit existing product
-      setProducts(products.map(p => 
-        p.id === selectedProduct.id ? { ...p, ...productData } : p
-      ));
-      setSnackbar({
-        open: true,
-        message: `${productData.name} updated successfully!`,
-        severity: 'success',
-      });
-    } else {
-      // Add new product
-      const newProduct = {
-        id: products.length + 1,
-        ...productData,
-        rating: 0,
-        reviewCount: 0,
-        createdAt: new Date().toISOString(),
-      };
-      setProducts([newProduct, ...products]);
-      setSnackbar({
-        open: true,
-        message: `${productData.name} added successfully!`,
-        severity: 'success',
-      });
-    }
+  const handleFormSubmit = () => {
     setFormOpen(false);
+    loadProducts(); // Reload products after add/edit
   };
 
   const handleFormClose = () => {
