@@ -1,22 +1,25 @@
+// client/src/firebase/config.js
 import { initializeApp } from 'firebase/app';
-import { 
-  getAuth, 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
   signOut,
+  GoogleAuthProvider,
+  signInWithPopup,
   sendPasswordResetEmail,
   updateProfile
 } from 'firebase/auth';
-import { 
-  getFirestore, 
-  doc, 
-  setDoc, 
-  getDoc, 
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  getDoc,
   updateDoc,
-  serverTimestamp 
+  serverTimestamp
 } from 'firebase/firestore';
 
-// ✅ YOUR ACTUAL FIREBASE CONFIG
+// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyB1kYWgXyq0I8nkFtyb-ENMOqs58pf6RPk",
   authDomain: "e-commerce-8619f.firebaseapp.com",
@@ -30,81 +33,72 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Auth
+// Initialize Auth and Firestore
 const auth = getAuth(app);
-
-// Initialize Firestore
 const db = getFirestore(app);
+const googleProvider = new GoogleAuthProvider();
 
-// Export instances
-export { auth, db };
+// Export the instances
+export { auth, db, googleProvider };
 
 // ============================================
-// AUTH FUNCTIONS
+// AUTHENTICATION FUNCTIONS
 // ============================================
 
-// Register new user
+/**
+ * Register a new user with email and password
+ */
 export const registerUser = async (email, password, name) => {
   try {
-    // Create user with email and password
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
-    
-    // Update user profile with name
+
+    // Update profile with the user's name
     await updateProfile(user, { displayName: name });
-    
+
     // Save user data to Firestore
     await setDoc(doc(db, 'users', user.uid), {
       uid: user.uid,
       name: name,
       email: email,
       createdAt: serverTimestamp(),
-      role: 'user',
-      emailVerified: user.emailVerified
+      role: 'user'
     });
-    
-    return { 
-      success: true, 
-      user: { 
-        uid: user.uid, 
-        name: name, 
-        email: email,
-        emailVerified: user.emailVerified
-      } 
+
+    return {
+      success: true,
+      user: { uid: user.uid, name, email }
     };
   } catch (error) {
     console.error('Registration error:', error);
     let errorMessage = error.message;
-    
-    // Friendly error messages
     if (error.code === 'auth/email-already-in-use') {
-      errorMessage = 'This email is already registered. Please login instead.';
+      errorMessage = 'This email is already registered.';
     } else if (error.code === 'auth/weak-password') {
       errorMessage = 'Password should be at least 6 characters.';
-    } else if (error.code === 'auth/invalid-email') {
-      errorMessage = 'Please enter a valid email address.';
     }
-    
     return { success: false, error: errorMessage };
   }
 };
 
-// Login user
+/**
+ * Login a user with email and password
+ */
 export const loginUser = async (email, password) => {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
-    
+
     // Get user data from Firestore
     const docRef = doc(db, 'users', user.uid);
     const docSnap = await getDoc(docRef);
-    
-    let userData = { 
-      uid: user.uid, 
+
+    let userData = {
+      uid: user.uid,
       email: user.email,
       emailVerified: user.emailVerified
     };
-    
+
     if (docSnap.exists()) {
       userData = { ...userData, ...docSnap.data() };
     } else {
@@ -118,25 +112,23 @@ export const loginUser = async (email, password) => {
       });
       userData.name = user.displayName || 'User';
     }
-    
+
     return { success: true, user: userData };
   } catch (error) {
     console.error('Login error:', error);
     let errorMessage = error.message;
-    
     if (error.code === 'auth/user-not-found') {
       errorMessage = 'No account found with this email.';
     } else if (error.code === 'auth/wrong-password') {
-      errorMessage = 'Incorrect password. Please try again.';
-    } else if (error.code === 'auth/too-many-requests') {
-      errorMessage = 'Too many failed attempts. Please try again later.';
+      errorMessage = 'Incorrect password.';
     }
-    
     return { success: false, error: errorMessage };
   }
 };
 
-// Logout user
+/**
+ * Logout the current user
+ */
 export const logoutUser = async () => {
   try {
     await signOut(auth);
@@ -147,7 +139,49 @@ export const logoutUser = async () => {
   }
 };
 
-// Send password reset email
+/**
+ * Login with Google Popup
+ */
+export const googleLogin = async () => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+
+    // Check if user exists in Firestore
+    const docRef = doc(db, 'users', user.uid);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      // If not, save user data to Firestore
+      await setDoc(docRef, {
+        uid: user.uid,
+        name: user.displayName || 'User',
+        email: user.email,
+        photoURL: user.photoURL || '',
+        createdAt: serverTimestamp(),
+        role: 'user'
+      });
+    }
+
+    let userData = {
+      uid: user.uid,
+      email: user.email,
+      name: user.displayName || 'User'
+    };
+    if (docSnap.exists()) {
+      userData = { ...userData, ...docSnap.data() };
+    }
+
+    return { success: true, user: userData };
+  } catch (error) {
+    console.error('Google login error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send password reset email
+ */
 export const resetPassword = async (email) => {
   try {
     await sendPasswordResetEmail(auth, email);
@@ -155,16 +189,16 @@ export const resetPassword = async (email) => {
   } catch (error) {
     console.error('Reset password error:', error);
     let errorMessage = error.message;
-    
     if (error.code === 'auth/user-not-found') {
       errorMessage = 'No account found with this email.';
     }
-    
     return { success: false, error: errorMessage };
   }
 };
 
-// Update user profile
+/**
+ * Update user profile in Firestore
+ */
 export const updateUserProfile = async (uid, data) => {
   try {
     const docRef = doc(db, 'users', uid);
@@ -172,12 +206,12 @@ export const updateUserProfile = async (uid, data) => {
       ...data,
       updatedAt: serverTimestamp()
     });
-    
+
     // Also update auth profile if name is being updated
     if (data.name && auth.currentUser) {
       await updateProfile(auth.currentUser, { displayName: data.name });
     }
-    
+
     return { success: true };
   } catch (error) {
     console.error('Update profile error:', error);
@@ -185,12 +219,14 @@ export const updateUserProfile = async (uid, data) => {
   }
 };
 
-// Get user data from Firestore
+/**
+ * Get user data from Firestore
+ */
 export const getUserData = async (uid) => {
   try {
     const docRef = doc(db, 'users', uid);
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
       return { success: true, data: docSnap.data() };
     } else {
