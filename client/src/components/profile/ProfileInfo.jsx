@@ -25,16 +25,18 @@ import {
   CalendarToday,
 } from '@mui/icons-material';
 import { toast } from 'react-toastify';
+import { updateUserProfile } from '../../firebase/config';
+import { auth } from '../../firebase/config';
 
 function ProfileInfo({ user }) {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: user?.name || 'John Doe',
-    email: user?.email || 'john@example.com',
-    phone: user?.phone || '+1 (555) 123-4567',
-    address: user?.address || '123 Main Street, New York, NY 10001',
-    bio: user?.bio || 'Passionate shopper and tech enthusiast.',
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    address: user?.address || '',
+    bio: user?.bio || '',
   });
 
   const handleChange = (e) => {
@@ -47,16 +49,27 @@ function ProfileInfo({ user }) {
   const handleSave = async () => {
     setLoading(true);
     try {
-      // Mock API call - replace with actual API
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast.success('Profile updated successfully!', {
-        position: 'bottom-right',
+      // Update profile in Firebase
+      const result = await updateUserProfile(auth.currentUser.uid, {
+        name: formData.name,
+        phone: formData.phone,
+        address: formData.address,
+        bio: formData.bio,
       });
-      setIsEditing(false);
+
+      if (result.success) {
+        // Update local storage
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const updatedUser = { ...currentUser, ...formData };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        toast.success('Profile updated successfully!');
+        setIsEditing(false);
+      } else {
+        toast.error(result.error || 'Failed to update profile');
+      }
     } catch (error) {
-      toast.error('Failed to update profile', {
-        position: 'bottom-right',
-      });
+      toast.error('Failed to update profile');
     } finally {
       setLoading(false);
     }
@@ -64,22 +77,22 @@ function ProfileInfo({ user }) {
 
   const handleCancel = () => {
     setFormData({
-      name: user?.name || 'John Doe',
-      email: user?.email || 'john@example.com',
-      phone: user?.phone || '+1 (555) 123-4567',
-      address: user?.address || '123 Main Street, New York, NY 10001',
-      bio: user?.bio || 'Passionate shopper and tech enthusiast.',
+      name: user?.name || '',
+      email: user?.email || '',
+      phone: user?.phone || '',
+      address: user?.address || '',
+      bio: user?.bio || '',
     });
     setIsEditing(false);
   };
 
-  const handlePhotoUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      toast.success('Profile photo updated!', {
-        position: 'bottom-right',
-      });
+  // Calculate member since
+  const getMemberSince = () => {
+    if (user?.createdAt) {
+      const date = new Date(user.createdAt);
+      return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     }
+    return 'January 2024'; // Fallback
   };
 
   return (
@@ -147,18 +160,13 @@ function ProfileInfo({ user }) {
             size="small"
           >
             <PhotoCamera fontSize="small" />
-            <input
-              type="file"
-              hidden
-              accept="image/*"
-              onChange={handlePhotoUpload}
-            />
+            <input type="file" hidden accept="image/*" />
           </IconButton>
         </Box>
         <Box>
-          <Typography variant="h6">{formData.name}</Typography>
+          <Typography variant="h6">{formData.name || 'User'}</Typography>
           <Typography variant="body2" color="text.secondary">
-            Member since January 2024
+            Member since {getMemberSince()}
           </Typography>
           <Chip
             label="Active"
@@ -196,7 +204,7 @@ function ProfileInfo({ user }) {
             type="email"
             value={formData.email}
             onChange={handleChange}
-            disabled={!isEditing || loading}
+            disabled={true} // Email can't be changed via profile (use Firebase Auth)
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -211,7 +219,7 @@ function ProfileInfo({ user }) {
             fullWidth
             label="Phone Number"
             name="phone"
-            value={formData.phone}
+            value={formData.phone || ''}
             onChange={handleChange}
             disabled={!isEditing || loading}
             InputProps={{
@@ -228,7 +236,7 @@ function ProfileInfo({ user }) {
             fullWidth
             label="Address"
             name="address"
-            value={formData.address}
+            value={formData.address || ''}
             onChange={handleChange}
             disabled={!isEditing || loading}
             InputProps={{
@@ -247,7 +255,7 @@ function ProfileInfo({ user }) {
             name="bio"
             multiline
             rows={3}
-            value={formData.bio}
+            value={formData.bio || ''}
             onChange={handleChange}
             disabled={!isEditing || loading}
             placeholder="Tell us a little about yourself..."
@@ -265,7 +273,7 @@ function ProfileInfo({ user }) {
         <Grid item xs={6} md={3}>
           <Paper sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main' }}>
-              12
+              0
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Total Orders
@@ -275,7 +283,7 @@ function ProfileInfo({ user }) {
         <Grid item xs={6} md={3}>
           <Paper sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.main' }}>
-              8
+              0
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Completed Orders
@@ -285,7 +293,7 @@ function ProfileInfo({ user }) {
         <Grid item xs={6} md={3}>
           <Paper sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="h4" sx={{ fontWeight: 700, color: 'warning.main' }}>
-              3
+              0
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Pending Orders
@@ -295,7 +303,7 @@ function ProfileInfo({ user }) {
         <Grid item xs={6} md={3}>
           <Paper sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="h4" sx={{ fontWeight: 700, color: 'secondary.main' }}>
-              ₹12,450
+              $0
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Total Spent
@@ -311,29 +319,9 @@ function ProfileInfo({ user }) {
         Recent Activity
       </Typography>
       <Paper sx={{ p: 3 }}>
-        {[
-          { action: 'Order #1234 delivered', time: '2 hours ago' },
-          { action: 'Reviewed Wireless Headphones', time: '1 day ago' },
-          { action: 'Added items to wishlist', time: '3 days ago' },
-          { action: 'Order #1232 shipped', time: '5 days ago' },
-        ].map((activity, index) => (
-          <Box
-            key={index}
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              py: 1.5,
-              borderBottom: index < 3 ? '1px solid' : 'none',
-              borderColor: 'grey.100',
-            }}
-          >
-            <Typography variant="body2">{activity.action}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              {activity.time}
-            </Typography>
-          </Box>
-        ))}
+        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+          No recent activity yet
+        </Typography>
       </Paper>
     </Box>
   );
