@@ -107,14 +107,16 @@ function RegisterPage() {
     setActiveStep((prev) => prev - 1);
   };
 
-  const handleSubmit = async () => {
+  // ✅ CRITICAL FIX: Added e.preventDefault()
+  const handleSubmit = async (e) => {
+    e.preventDefault();  // ← THIS PREVENTS GET REQUEST TO ROOT
+
     if (!validateStep(2)) return;
     
     setLoading(true);
     setServerError('');
 
     try {
-      // ✅ HARDCODED URL - Direct call to backend
       const response = await fetch('https://e-commerce-owv6.onrender.com/api/auth/register', {
         method: 'POST',
         headers: {
