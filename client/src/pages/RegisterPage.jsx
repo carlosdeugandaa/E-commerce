@@ -24,13 +24,10 @@ import {
   VisibilityOff,
   CheckCircle,
 } from '@mui/icons-material';
-import {  useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import AuthLayout from '../components/auth/AuthLayout';
 import SocialLogin from '../components/auth/SocialLogin';
-
-// API URL - Your Render backend
-const API_URL = 'https://e-commerce-owv6.onrender.com/api';
 
 function RegisterPage() {
   const navigate = useNavigate();
@@ -117,6 +114,7 @@ function RegisterPage() {
     setServerError('');
 
     try {
+      // ✅ HARDCODED URL - Direct call to backend
       const response = await fetch('https://e-commerce-owv6.onrender.com/api/auth/register', {
         method: 'POST',
         headers: {
@@ -140,7 +138,6 @@ function RegisterPage() {
         autoClose: 3000,
       });
 
-      // Redirect to login after a short delay
       setTimeout(() => {
         navigate('/login');
       }, 1500);
@@ -375,7 +372,6 @@ function RegisterPage() {
       alternateText="Already have an account?"
     >
       <Box>
-        {/* Stepper */}
         <Stepper activeStep={activeStep} orientation="vertical" sx={{ mb: 3 }}>
           {steps.map((step, index) => (
             <Step key={index}>
@@ -422,7 +418,6 @@ function RegisterPage() {
           ))}
         </Stepper>
 
-        {/* Social Login */}
         <Box sx={{ mt: 3 }}>
           <SocialLogin />
         </Box>
