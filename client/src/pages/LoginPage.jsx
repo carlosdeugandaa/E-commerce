@@ -64,15 +64,16 @@ function LoginPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // ✅ CRITICAL FIX: Added e.preventDefault()
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault();  // ← THIS PREVENTS GET REQUEST TO ROOT
+
     if (!validateForm()) return;
 
     setLoading(true);
     setServerError('');
 
     try {
-      // ✅ HARDCODED URL - Direct call to backend
       const response = await fetch('https://e-commerce-owv6.onrender.com/api/auth/login', {
         method: 'POST',
         headers: {
