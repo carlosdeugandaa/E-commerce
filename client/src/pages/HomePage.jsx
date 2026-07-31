@@ -9,6 +9,7 @@ import {
   Button,
   Paper,
   useTheme,
+  CircularProgress,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import {
@@ -19,42 +20,56 @@ import {
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import ProductGrid from '../components/products/ProductGrid';
-import { getProducts } from '../firebase/config'; // ✅ Use Firebase
+import { getProducts } from '../firebase/config';
 
 function HomePage() {
   const theme = useTheme();
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [latestProducts, setLatestProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     const loadProducts = async () => {
-      const result = await getProducts();
-      if (result.success) {
-        // Featured products (first 4)
-        setFeaturedProducts(result.products.filter(p => p.isFeatured).slice(0, 4));
-        // Latest products (first 6)
-        setLatestProducts(result.products.slice(0, 6));
+      try {
+        const result = await getProducts();
+        if (result.success) {
+          const allProducts = result.products || [];
+          setFeaturedProducts(allProducts.filter(p => p.isFeatured).slice(0, 4));
+          setLatestProducts(allProducts.slice(0, 6));
+          setError(false);
+        } else {
+          console.error('Failed to load products:', result.error);
+          setError(true);
+          // Use fallback empty arrays
+          setFeaturedProducts([]);
+          setLatestProducts([]);
+        }
+      } catch (error) {
+        console.error('Error loading products:', error);
+        setError(true);
+        setFeaturedProducts([]);
+        setLatestProducts([]);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     loadProducts();
   }, []);
 
-  // Categories - keep as is (they don't need Firebase)
   const categories = [
-    { id: 'electronics', name: 'Electronics', icon: '💻', count: 0 },
-    { id: 'fashion', name: 'Fashion', icon: '👕', count: 0 },
-    { id: 'home', name: 'Home & Kitchen', icon: '🏠', count: 0 },
-    { id: 'beauty', name: 'Beauty', icon: '💄', count: 0 },
-    { id: 'sports', name: 'Sports', icon: '⚽', count: 0 },
+    { id: 'electronics', name: 'Electronics', icon: '💻' },
+    { id: 'fashion', name: 'Fashion', icon: '👕' },
+    { id: 'home', name: 'Home & Kitchen', icon: '🏠' },
+    { id: 'beauty', name: 'Beauty', icon: '💄' },
+    { id: 'sports', name: 'Sports', icon: '⚽' },
   ];
 
   if (loading) {
     return (
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Typography>Loading products...</Typography>
-      </Container>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <CircularProgress />
+      </Box>
     );
   }
 
@@ -182,7 +197,15 @@ function HomePage() {
             View All
           </Button>
         </Box>
-        <ProductGrid products={featuredProducts} loading={loading} />
+        {error && featuredProducts.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="body1" color="text.secondary">
+              Unable to load products. Please try again later.
+            </Typography>
+          </Box>
+        ) : (
+          <ProductGrid products={featuredProducts} />
+        )}
       </Container>
 
       {/* Category Showcase */}
@@ -233,7 +256,15 @@ function HomePage() {
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 4 }}>
           New Arrivals
         </Typography>
-        <ProductGrid products={latestProducts} loading={loading} compact />
+        {error && latestProducts.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="body1" color="text.secondary">
+              Unable to load products. Please try again later.
+            </Typography>
+          </Box>
+        ) : (
+          <ProductGrid products={latestProducts} compact />
+        )}
       </Container>
     </Box>
   );
