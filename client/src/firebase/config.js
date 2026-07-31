@@ -122,7 +122,6 @@ export const googleLogin = async () => {
 // PROFILE FUNCTIONS
 // ============================================
 
-// ✅ ADD THIS FUNCTION - This fixes the error!
 export const updateUserProfile = async (uid, data) => {
   try {
     const docRef = doc(db, 'users', uid);
@@ -130,14 +129,11 @@ export const updateUserProfile = async (uid, data) => {
       ...data,
       updatedAt: serverTimestamp()
     });
-    
     if (data.name && auth.currentUser) {
       await updateProfile(auth.currentUser, { displayName: data.name });
     }
-    
     return { success: true };
   } catch (error) {
-    console.error('Update profile error:', error);
     return { success: false, error: error.message };
   }
 };
@@ -148,9 +144,8 @@ export const getUserProfile = async (uid) => {
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       return { success: true, data: docSnap.data() };
-    } else {
-      return { success: false, error: 'User not found' };
     }
+    return { success: false, error: 'User not found' };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -254,20 +249,17 @@ export const addToCart = async (userId, productId, quantity = 1) => {
   try {
     const cartRef = doc(db, 'cart', userId);
     const cartSnap = await getDoc(cartRef);
-    
     const productResult = await getProduct(productId);
     if (!productResult.success) {
       return { success: false, error: 'Product not found' };
     }
     const product = productResult.product;
-    
     let cartData;
     if (cartSnap.exists()) {
       cartData = cartSnap.data();
     } else {
       cartData = { userId, items: [] };
     }
-    
     const existingItem = cartData.items.find(item => item.productId === productId);
     if (existingItem) {
       existingItem.quantity += quantity;
@@ -280,7 +272,6 @@ export const addToCart = async (userId, productId, quantity = 1) => {
         quantity: quantity
       });
     }
-    
     await setDoc(cartRef, cartData);
     return { success: true, cart: cartData.items };
   } catch (error) {
@@ -335,18 +326,15 @@ export const addToWishlist = async (userId, productId) => {
   try {
     const wishlistRef = doc(db, 'wishlist', userId);
     const wishlistSnap = await getDoc(wishlistRef);
-    
     let wishlistData;
     if (wishlistSnap.exists()) {
       wishlistData = wishlistSnap.data();
     } else {
       wishlistData = { userId, products: [] };
     }
-    
     if (wishlistData.products.includes(productId)) {
       return { success: false, error: 'Product already in wishlist' };
     }
-    
     wishlistData.products.push(productId);
     await setDoc(wishlistRef, wishlistData);
     return { success: true };
