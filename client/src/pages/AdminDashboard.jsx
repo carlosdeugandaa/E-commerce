@@ -15,7 +15,7 @@ import {
   TableHead,
   TableRow,
   Chip,
-  LinearProgress,
+  CircularProgress,
   IconButton,
   MenuItem,
   Select,
@@ -50,81 +50,75 @@ function AdminDashboard() {
     products: 0,
   });
   const [recentOrders, setRecentOrders] = useState([]);
-  const [chartData, setChartData] = useState([]);
+  const [error, setError] = useState(false);
 
-  // Load real data from Firestore
   useEffect(() => {
     const loadDashboardData = async () => {
       setLoading(true);
+      setError(false);
       try {
-        // Get products
-        const productsResult = await getProducts();
+        const [productsResult, ordersResult, usersResult] = await Promise.all([
+          getProducts(),
+          getAllOrders(),
+          getAllUsers(),
+        ]);
+
         const products = productsResult.success ? productsResult.products : [];
-        
-        // Get orders
-        const ordersResult = await getAllOrders();
         const orders = ordersResult.success ? ordersResult.orders : [];
-        
-        // Get users
-        const usersResult = await getAllUsers();
         const users = usersResult.success ? usersResult.users : [];
 
-        // Calculate stats
         const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-        const totalOrders = orders.length;
-        const totalCustomers = users.length;
-        const totalProducts = products.length;
 
         setStats({
           revenue: totalRevenue,
-          orders: totalOrders,
-          customers: totalCustomers,
-          products: totalProducts,
+          orders: orders.length,
+          customers: users.length,
+          products: products.length,
         });
 
-        // Recent orders (last 5)
         setRecentOrders(orders.slice(0, 5));
-
-        // Mock chart data (you can replace with real data later)
-        setChartData([
-          { day: 'Mon', revenue: 1200, orders: 15 },
-          { day: 'Tue', revenue: 1800, orders: 22 },
-          { day: 'Wed', revenue: 900, orders: 11 },
-          { day: 'Thu', revenue: 2100, orders: 28 },
-          { day: 'Fri', revenue: 1600, orders: 19 },
-          { day: 'Sat', revenue: 2800, orders: 35 },
-          { day: 'Sun', revenue: 1400, orders: 17 },
-        ]);
-
       } catch (error) {
         console.error('Error loading dashboard:', error);
+        setError(true);
+        setStats({ revenue: 0, orders: 0, customers: 0, products: 0 });
+        setRecentOrders([]);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     loadDashboardData();
   }, [timeframe]);
 
   const statCards = [
-    { title: 'Revenue', value: `$${stats.revenue.toLocaleString()}`, icon: <AttachMoney />, color: 'primary.main', change: '+12.5%', trend: 'up' },
-    { title: 'Orders', value: stats.orders, icon: <ShoppingBag />, color: 'secondary.main', change: '+8.2%', trend: 'up' },
-    { title: 'Customers', value: stats.customers, icon: <People />, color: 'success.main', change: '+5.3%', trend: 'up' },
-    { title: 'Products', value: stats.products, icon: <Store />, color: 'warning.main', change: '-2.1%', trend: 'down' },
+    { title: 'Revenue', value: `$${stats.revenue.toLocaleString()}`, icon: <AttachMoney />, color: 'primary.main' },
+    { title: 'Orders', value: stats.orders, icon: <ShoppingBag />, color: 'secondary.main' },
+    { title: 'Customers', value: stats.customers, icon: <People />, color: 'success.main' },
+    { title: 'Products', value: stats.products, icon: <Store />, color: 'warning.main' },
   ];
 
   if (loading) {
     return (
+      <Container maxWidth="xl" sx={{ py: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 4 }}>Dashboard</Typography>
-        <Grid container spacing={3}>
-          {[1, 2, 3, 4].map((item) => (
-            <Grid item xs={12} sm={6} md={3} key={item}>
-              <Paper sx={{ p: 3 }}>
-                <LinearProgress />
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="h6" color="error" gutterBottom>
+            Unable to load dashboard data
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Please refresh the page or try again later.
+          </Typography>
+          <Button variant="contained" sx={{ mt: 2 }} onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        </Paper>
       </Container>
     );
   }
@@ -182,17 +176,6 @@ function AdminDashboard() {
                         <Typography variant="h4" sx={{ fontWeight: 700, mt: 1 }}>
                           {stat.value}
                         </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
-                          {stat.trend === 'up' ? (
-                            <ArrowUpward sx={{ fontSize: 14, color: 'success.main' }} />
-                          ) : (
-                            <ArrowDownward sx={{ fontSize: 14, color: 'error.main' }} />
-                          )}
-                          <Typography variant="caption" color={stat.trend === 'up' ? 'success.main' : 'error.main'}>
-                            {stat.change}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">vs last period</Typography>
-                        </Box>
                       </Box>
                       <Box sx={{ bgcolor: stat.color, color: 'white', p: 1.5, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {stat.icon}
@@ -227,7 +210,7 @@ function AdminDashboard() {
                     {recentOrders.length > 0 ? (
                       recentOrders.map((order) => (
                         <TableRow key={order.id}>
-                          <TableCell><Typography variant="caption" sx={{ fontWeight: 600 }}>#{order.id.slice(-6)}</Typography></TableCell>
+                          <TableCell><Typography variant="caption" sx={{ fontWeight: 600 }}>#{order.id?.slice(-6) || 'N/A'}</Typography></TableCell>
                           <TableCell><Typography variant="caption">{order.userId || 'N/A'}</Typography></TableCell>
                           <TableCell align="right"><Typography variant="caption" sx={{ fontWeight: 600 }}>${order.totalAmount?.toFixed(2) || '0.00'}</Typography></TableCell>
                           <TableCell align="center">
@@ -241,7 +224,9 @@ function AdminDashboard() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={4} align="center">No orders yet</TableCell>
+                        <TableCell colSpan={4} align="center">
+                          <Typography variant="body2" color="text.secondary">No orders yet</Typography>
+                        </TableCell>
                       </TableRow>
                     )}
                   </TableBody>
