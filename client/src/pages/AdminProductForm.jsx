@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { addProduct, updateProduct } from '../firebase/config';
 import { toast } from 'react-toastify';
+import { categories } from '../utils/constants';
 
 function AdminProductForm({ product, onSubmit, onCancel }) {
   const [loading, setLoading] = useState(false);
@@ -78,10 +79,8 @@ function AdminProductForm({ product, onSubmit, onCancel }) {
 
     let result;
     if (product) {
-      // Update existing product
       result = await updateProduct(product.id, productData);
     } else {
-      // Add new product
       result = await addProduct(productData);
     }
 
@@ -187,11 +186,14 @@ function AdminProductForm({ product, onSubmit, onCancel }) {
               onChange={handleChange}
               label="Category"
             >
-              <MenuItem value="electronics">Electronics</MenuItem>
-              <MenuItem value="fashion">Fashion</MenuItem>
-              <MenuItem value="home">Home & Kitchen</MenuItem>
-              <MenuItem value="beauty">Beauty</MenuItem>
-              <MenuItem value="sports">Sports</MenuItem>
+              {categories.map(cat => (
+                <MenuItem key={cat.id} value={cat.id}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <span style={{ display: 'flex' }}>{cat.icon}</span>
+                    {cat.name}
+                  </Box>
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
         </Grid>
