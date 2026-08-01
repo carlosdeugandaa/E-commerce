@@ -46,6 +46,61 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
+// ============================================
+// BANNER FUNCTIONS - Add this entire block
+// ============================================
+
+export const getBanners = async () => {
+  try {
+    const q = query(
+      collection(db, 'banners'),
+      where('isActive', '==', true),
+      orderBy('order', 'asc')
+    );
+    const snapshot = await getDocs(q);
+    const banners = [];
+    snapshot.forEach(doc => banners.push({ id: doc.id, ...doc.data() }));
+    return { success: true, banners };
+  } catch (error) {
+    console.error('Error fetching banners:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const addBanner = async (bannerData) => {
+  try {
+    const docRef = await addDoc(collection(db, 'banners'), {
+      ...bannerData,
+      createdAt: serverTimestamp()
+    });
+    return { success: true, id: docRef.id };
+  } catch (error) {
+    console.error('Error adding banner:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const updateBanner = async (bannerId, bannerData) => {
+  try {
+    const docRef = doc(db, 'banners', bannerId);
+    await updateDoc(docRef, bannerData);
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating banner:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const deleteBanner = async (bannerId) => {
+  try {
+    const docRef = doc(db, 'banners', bannerId);
+    await deleteDoc(docRef);
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting banner:', error);
+    return { success: false, error: error.message };
+  }
+};
 export { auth, db, googleProvider };
 
 // ============================================
