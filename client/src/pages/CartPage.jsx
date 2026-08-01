@@ -6,18 +6,13 @@ import {
   Typography,
   Button,
   Paper,
-  Divider,
-  IconButton,
-  TextField,
   Chip,
   useMediaQuery,
   useTheme,
   Alert,
+  IconButton,
 } from '@mui/material';
 import {
-  Delete,
-  Remove,
-  Add,
   ShoppingCart,
   ArrowBack,
   Clear,
@@ -28,73 +23,87 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import CartItem from '../components/cart/CartItem';
 import CartSummary from '../components/cart/CartSummary';
+import { getCart, addToCart, removeFromCart, clearCart } from '../firebase/config';
 
 function CartPage() {
   const theme = useTheme();
   const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
-
-  // State
   const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [promoError, setPromoError] = useState('');
+  const user = JSON.parse(localStorage.getItem('user'));
 
-  // Load cart from localStorage on mount
+  // Load cart from Firestore
   useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      try {
-        setCartItems(JSON.parse(savedCart));
-      } catch (error) {
-        console.error('Error loading cart:', error);
-        setCartItems([]);
+    const loadCart = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
       }
-    }
-  }, []);
-
-  // Save to localStorage whenever cart changes
-  useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cartItems));
-  }, [cartItems]);
+      const result = await getCart(user.uid);
+      if (result.success) {
+        setCartItems(result.cart || []);
+      } else {
+        toast.error('Failed to load cart');
+      }
+      setLoading(false);
+    };
+    loadCart();
+  }, [user]);
 
   // Calculate totals
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const subtotal = cartItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
+  const totalItems = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
   const shipping = subtotal > 50 ? 0 : 5.99;
   const tax = subtotal * 0.08;
-  const discount = appliedCoupon ? subtotal * 0.1 : 0; // 10% discount
+  const discount = appliedCoupon ? subtotal * 0.1 : 0;
   const total = subtotal + shipping + tax - discount;
 
   // Handlers
-  const handleQuantityChange = (itemId, newQuantity) => {
+  const handleQuantityChange = async (itemId, newQuantity) => {
     if (newQuantity < 1) return;
-    const updatedCart = cartItems.map(item =>
-      item.id === itemId ? { ...item, quantity: newQuantity } : item
-    );
-    setCartItems(updatedCart);
-    // Trigger event for navbar
-    window.dispatchEvent(new Event('cartUpdated'));
+    if (!user) return;
+    
+    setIsLoading(true);
+    const result = await addToCart(user.uid, itemId, newQuantity);
+    if (result.success) {
+      setCartItems(result.cart);
+      window.dispatchEvent(new Event('cartUpdated'));
+    } else {
+      toast.error(result.error || 'Failed to update cart');
+    }
+    setIsLoading(false);
   };
 
-  const handleRemoveItem = (itemId) => {
-    const updatedCart = cartItems.filter(item => item.id !== itemId);
-    setCartItems(updatedCart);
-    window.dispatchEvent(new Event('cartUpdated'));
-    toast.info('Item removed from cart', {
-      position: 'bottom-right',
-    });
+  const handleRemoveItem = async (itemId) => {
+    if (!user) return;
+    
+    const result = await removeFromCart(user.uid, itemId);
+    if (result.success) {
+      setCartItems(result.cart);
+      window.dispatchEvent(new Event('cartUpdated'));
+      toast.info('Item removed from cart');
+    } else {
+      toast.error('Failed to remove item');
+    }
   };
 
-  const handleClearCart = () => {
+  const handleClearCart = async () => {
     if (cartItems.length === 0) return;
-    setCartItems([]);
-    window.dispatchEvent(new Event('cartUpdated'));
-    toast.info('Cart cleared', {
-      position: 'bottom-right',
-    });
+    if (!user) return;
+    
+    const result = await clearCart(user.uid);
+    if (result.success) {
+      setCartItems([]);
+      window.dispatchEvent(new Event('cartUpdated'));
+      toast.info('Cart cleared');
+    } else {
+      toast.error('Failed to clear cart');
+    }
   };
 
   const handleApplyCoupon = () => {
@@ -103,19 +112,13 @@ function CartPage() {
       setPromoError('Please enter a coupon code');
       return;
     }
-
-    // Mock coupon validation
     if (couponCode.toUpperCase() === 'SAVE10') {
       setAppliedCoupon({ code: 'SAVE10', discount: 10 });
-      toast.success('Coupon applied successfully!', {
-        position: 'bottom-right',
-      });
+      toast.success('Coupon applied successfully!');
       setCouponCode('');
     } else if (couponCode.toUpperCase() === 'FREESHIP') {
       setAppliedCoupon({ code: 'FREESHIP', discount: 0, freeShipping: true });
-      toast.success('Free shipping applied!', {
-        position: 'bottom-right',
-      });
+      toast.success('Free shipping applied!');
       setCouponCode('');
     } else {
       setPromoError('Invalid coupon code');
@@ -124,46 +127,28 @@ function CartPage() {
 
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
-    toast.info('Coupon removed', {
-      position: 'bottom-right',
-    });
+    toast.info('Coupon removed');
   };
 
   const handleProceedToCheckout = () => {
     if (cartItems.length === 0) {
-      toast.error('Your cart is empty', {
-        position: 'bottom-right',
-      });
+      toast.error('Your cart is empty');
       return;
     }
-    toast.info('Redirecting to checkout...', {
-      position: 'bottom-right',
-    });
-    // navigate('/checkout');
+    navigate('/checkout');
   };
 
   const handleContinueShopping = () => {
     navigate('/products');
   };
 
-  // Update CartItem component props
-  const renderCartItems = () => {
-    return cartItems.map((item) => (
-      <motion.div
-        key={item.id}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, x: -100 }}
-        transition={{ duration: 0.3 }}
-      >
-        <CartItem
-          item={item}
-          onQuantityChange={handleQuantityChange}
-          onRemove={handleRemoveItem}
-        />
-      </motion.div>
-    ));
-  };
+  if (loading) {
+    return (
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Typography>Loading cart...</Typography>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -174,90 +159,52 @@ function CartPage() {
         <Typography variant="h4" sx={{ fontWeight: 700 }}>
           Shopping Cart
         </Typography>
-        <Chip
-          label={`${totalItems} items`}
-          color="primary"
-          size={isMobile ? 'small' : 'medium'}
-        />
+        <Chip label={`${totalItems} items`} color="primary" size={isMobile ? 'small' : 'medium'} />
       </Box>
 
       {cartItems.length === 0 ? (
-        // Empty Cart
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <Paper sx={{ p: 6, textAlign: 'center' }}>
             <ShoppingCart sx={{ fontSize: 80, color: 'grey.400', mb: 2 }} />
-            <Typography variant="h5" gutterBottom>
-              Your cart is empty
-            </Typography>
+            <Typography variant="h5" gutterBottom>Your cart is empty</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Looks like you haven't added any items to your cart yet.
-              Start shopping to fill it up!
+              Looks like you haven't added any items yet.
             </Typography>
-            <Button
-              variant="contained"
-              size="large"
-              onClick={handleContinueShopping}
-              startIcon={<ArrowBack />}
-            >
+            <Button variant="contained" size="large" onClick={handleContinueShopping} startIcon={<ArrowBack />}>
               Continue Shopping
             </Button>
           </Paper>
         </motion.div>
       ) : (
         <Grid container spacing={3}>
-          {/* Cart Items */}
           <Grid item xs={12} md={8}>
-            {/* Action Bar */}
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                mb: 2,
-                flexWrap: 'wrap',
-                gap: 1,
-              }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                {totalItems} items in your cart
-              </Typography>
-              <Button
-                size="small"
-                color="error"
-                startIcon={<Clear />}
-                onClick={handleClearCart}
-                disabled={cartItems.length === 0}
-              >
-                Clear Cart
-              </Button>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+              <Typography variant="body2" color="text.secondary">{totalItems} items in your cart</Typography>
+              <Button size="small" color="error" startIcon={<Clear />} onClick={handleClearCart}>Clear Cart</Button>
             </Box>
-
-            {/* Cart Items List */}
             <AnimatePresence>
-              {renderCartItems()}
+              {cartItems.map((item) => (
+                <motion.div key={item.productId} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -100 }} transition={{ duration: 0.3 }}>
+                  <CartItem
+                    item={{
+                      id: item.productId,
+                      name: item.name,
+                      price: item.price,
+                      quantity: item.quantity,
+                      image: item.image,
+                    }}
+                    onQuantityChange={handleQuantityChange}
+                    onRemove={handleRemoveItem}
+                  />
+                </motion.div>
+              ))}
             </AnimatePresence>
-
-            {/* Continue Shopping */}
-            <Button
-              startIcon={<ArrowBack />}
-              onClick={handleContinueShopping}
-              sx={{ mt: 2 }}
-            >
+            <Button startIcon={<ArrowBack />} onClick={handleContinueShopping} sx={{ mt: 2 }}>
               Continue Shopping
             </Button>
           </Grid>
-
-          {/* Order Summary */}
           <Grid item xs={12} md={4}>
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
+            <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
               <CartSummary
                 subtotal={subtotal}
                 shipping={shipping}
