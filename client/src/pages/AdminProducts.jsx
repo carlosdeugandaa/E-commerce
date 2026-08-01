@@ -132,7 +132,7 @@ function AdminProducts() {
         setProducts(products.filter(p => p.id !== productToDelete.id));
         setSnackbar({
           open: true,
-          message: `${productToDelete.name || 'Product'} deleted successfully!',
+          message: `${productToDelete.name || 'Product'} deleted successfully!`,
           severity: 'success',
         });
       } else {
@@ -331,7 +331,8 @@ function AdminProducts() {
                         <IconButton size="small" onClick={() => handleDeleteClick(product)} color="error">
                           <Delete />
                         </IconButton>
-                        <IconButton size="small" component="a" href={`/product/${product.id}`} target="_blank">
+                        {/* ✅ FIXED: use string concatenation instead of template literal */}
+                        <IconButton size="small" component="a" href={"/product/" + product.id} target="_blank">
                           <Visibility />
                         </IconButton>
                       </TableCell>
