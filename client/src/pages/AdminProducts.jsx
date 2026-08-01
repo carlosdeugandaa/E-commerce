@@ -1,4 +1,3 @@
-// client/src/pages/AdminProducts.jsx
 import React, { useState, useEffect } from 'react';
 import {
   Container,
@@ -68,7 +67,6 @@ function AdminProducts() {
     try {
       const result = await getProducts();
       if (result.success) {
-        // ✅ Filter out invalid products
         const validProducts = result.products.filter(p => p.name && typeof p.name === 'string');
         setProducts(validProducts);
         if (validProducts.length === 0) {
@@ -333,7 +331,7 @@ function AdminProducts() {
                         <IconButton size="small" onClick={() => handleDeleteClick(product)} color="error">
                           <Delete />
                         </IconButton>
-                        <IconButton size="small" href={`/product/${product.id}`} target="_blank">
+                        <IconButton size="small" component="a" href={`/product/${product.id}`} target="_blank">
                           <Visibility />
                         </IconButton>
                       </TableCell>
