@@ -169,7 +169,10 @@ function ProductListing() {
           <MenuItem value="all">All Categories</MenuItem>
           {categories.map(cat => (
             <MenuItem key={cat.id} value={cat.id}>
-              {cat.icon} {cat.name}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <span style={{ display: 'flex', fontSize: 20 }}>{cat.icon}</span>
+                {cat.name}
+              </Box>
             </MenuItem>
           ))}
         </Select>
