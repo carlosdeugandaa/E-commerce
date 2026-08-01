@@ -32,6 +32,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '../components/products/ProductCard';
 import { getProducts } from '../firebase/config';
+import { categories } from '../utils/constants';
 
 function ProductListing() {
   const theme = useTheme();
@@ -166,11 +167,11 @@ function ProductListing() {
           label="Category"
         >
           <MenuItem value="all">All Categories</MenuItem>
-          <MenuItem value="electronics">Electronics</MenuItem>
-          <MenuItem value="fashion">Fashion</MenuItem>
-          <MenuItem value="home">Home & Kitchen</MenuItem>
-          <MenuItem value="beauty">Beauty</MenuItem>
-          <MenuItem value="sports">Sports</MenuItem>
+          {categories.map(cat => (
+            <MenuItem key={cat.id} value={cat.id}>
+              {cat.icon} {cat.name}
+            </MenuItem>
+          ))}
         </Select>
       </FormControl>
 
