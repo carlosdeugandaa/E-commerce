@@ -93,6 +93,7 @@ function App() {
               <AdminUsers />
             </ProtectedRoute>
           } />
+            <Route path="/admin/banners" element={ <ProtectedRoute adminOnly={true}> <AdminBanners /> </ProtectedRoute> } />
         </Routes>
       </Layout>
     </BrowserRouter>
