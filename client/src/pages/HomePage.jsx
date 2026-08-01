@@ -1,3 +1,4 @@
+// client/src/pages/HomePage.jsx
 import React, { useState, useEffect } from 'react';
 import {
   Container,
@@ -29,31 +30,35 @@ function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        const result = await getProducts();
-        if (result.success) {
-          const allProducts = result.products || [];
-          setFeaturedProducts(allProducts.filter(p => p.isFeatured).slice(0, 4));
-          setLatestProducts(allProducts.slice(0, 6));
-          setError(false);
-        } else {
-          console.error('Failed to load products:', result.error);
-          setError(true);
-          // Use fallback empty arrays
+  // ✅ Your updated loadProducts function
+  const loadProducts = async () => {
+    try {
+      const result = await getProducts();
+      if (result.success) {
+        const allProducts = result.products || [];
+        if (allProducts.length === 0) {
+          console.log('No products found in Firestore');
           setFeaturedProducts([]);
           setLatestProducts([]);
+        } else {
+          // Filter only products that have required fields (safety check)
+          const validProducts = allProducts.filter(p => p.name && p.price !== undefined);
+          setFeaturedProducts(validProducts.filter(p => p.isFeatured).slice(0, 4));
+          setLatestProducts(validProducts.slice(0, 6));
         }
-      } catch (error) {
-        console.error('Error loading products:', error);
+        setError(false);
+      } else {
         setError(true);
-        setFeaturedProducts([]);
-        setLatestProducts([]);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('Error loading products:', error);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadProducts();
   }, []);
 
@@ -73,9 +78,24 @@ function HomePage() {
     );
   }
 
+  if (error) {
+    return (
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="h6" color="error" gutterBottom>
+            Unable to load products
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Please try again later or add some products in the admin panel.
+          </Typography>
+        </Paper>
+      </Container>
+    );
+  }
+
   return (
     <Box sx={{ overflow: 'hidden' }}>
-      {/* Hero Section */}
+      {/* Hero Section - unchanged */}
       <Box
         sx={{
           bgcolor: 'primary.main',
@@ -146,7 +166,7 @@ function HomePage() {
         </Container>
       </Box>
 
-      {/* Features Section */}
+      {/* Features Section - unchanged */}
       <Container maxWidth="xl" sx={{ py: 6 }}>
         <Grid container spacing={3}>
           {[
@@ -197,10 +217,10 @@ function HomePage() {
             View All
           </Button>
         </Box>
-        {error && featuredProducts.length === 0 ? (
+        {featuredProducts.length === 0 && !error ? (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="body1" color="text.secondary">
-              Unable to load products. Please try again later.
+              No featured products yet. Add some in the admin panel!
             </Typography>
           </Box>
         ) : (
@@ -256,10 +276,10 @@ function HomePage() {
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 4 }}>
           New Arrivals
         </Typography>
-        {error && latestProducts.length === 0 ? (
+        {latestProducts.length === 0 && !error ? (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="body1" color="text.secondary">
-              Unable to load products. Please try again later.
+              No products yet. Add some in the admin panel!
             </Typography>
           </Box>
         ) : (
