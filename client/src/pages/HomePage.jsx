@@ -1,4 +1,3 @@
-// client/src/pages/HomePage.jsx
 import React, { useState, useEffect } from 'react';
 import {
   Container,
@@ -23,52 +22,56 @@ import { Link } from 'react-router-dom';
 import ProductGrid from '../components/products/ProductGrid';
 import { getProducts } from '../firebase/config';
 import { categories } from '../utils/constants';
+
 function HomePage() {
   const theme = useTheme();
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [latestProducts, setLatestProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-
-  // ✅ Your updated loadProducts function
-  const loadProducts = async () => {
-    try {
-      const result = await getProducts();
-      if (result.success) {
-        const allProducts = result.products || [];
-        if (allProducts.length === 0) {
-          console.log('No products found in Firestore');
-          setFeaturedProducts([]);
-          setLatestProducts([]);
-        } else {
-          // Filter only products that have required fields (safety check)
-          const validProducts = allProducts.filter(p => p.name && p.price !== undefined);
-          setFeaturedProducts(validProducts.filter(p => p.isFeatured).slice(0, 4));
-          setLatestProducts(validProducts.slice(0, 6));
-        }
-        setError(false);
-      } else {
-        setError(true);
-      }
-    } catch (error) {
-      console.error('Error loading products:', error);
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const result = await getProducts();
+        if (result.success) {
+          const allProducts = result.products || [];
+          
+          // Filter out invalid products
+          const validProducts = allProducts.filter(p => {
+            const hasName = p.name && typeof p.name === 'string';
+            const hasPrice = typeof p.price === 'number';
+            const hasCategory = p.category && typeof p.category === 'string';
+            return hasName && hasPrice && hasCategory;
+          });
+
+          console.log(`✅ Found ${allProducts.length} products, ${validProducts.length} valid`);
+
+          if (validProducts.length === 0) {
+            setErrorMessage('No valid products found. Please add products with name, price, and category.');
+            setFeaturedProducts([]);
+            setLatestProducts([]);
+          } else {
+            setFeaturedProducts(validProducts.filter(p => p.isFeatured).slice(0, 4));
+            setLatestProducts(validProducts.slice(0, 6));
+            setErrorMessage('');
+          }
+          setError(false);
+        } else {
+          setError(true);
+          setErrorMessage('Failed to load products from Firestore.');
+        }
+      } catch (error) {
+        console.error('Error loading products:', error);
+        setError(true);
+        setErrorMessage(error.message || 'An error occurred while loading products.');
+      } finally {
+        setLoading(false);
+      }
+    };
     loadProducts();
   }, []);
-
-  const categories = [
-    { id: 'electronics', name: 'Electronics', icon: '💻' },
-    { id: 'fashion', name: 'Fashion', icon: '👕' },
-    { id: 'home', name: 'Home & Kitchen', icon: '🏠' },
-    { id: 'beauty', name: 'Beauty', icon: '💄' },
-    { id: 'sports', name: 'Sports', icon: '⚽' },
-  ];
 
   if (loading) {
     return (
@@ -80,22 +83,27 @@ function HomePage() {
 
   if (error) {
     return (
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Typography variant="h6" color="error" gutterBottom>
-            Unable to load products
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Please try again later or add some products in the admin panel.
-          </Typography>
-        </Paper>
+      <Container maxWidth="xl" sx={{ py: 8, textAlign: 'center' }}>
+        <Typography variant="h5" color="error" gutterBottom>
+          ⚠️ Unable to Load Products
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          {errorMessage || 'Please check your Firestore configuration.'}
+        </Typography>
+        <Button 
+          variant="contained" 
+          sx={{ mt: 3 }}
+          onClick={() => window.location.reload()}
+        >
+          Retry
+        </Button>
       </Container>
     );
   }
 
   return (
     <Box sx={{ overflow: 'hidden' }}>
-      {/* Hero Section - unchanged */}
+      {/* Hero Section */}
       <Box
         sx={{
           bgcolor: 'primary.main',
@@ -166,7 +174,7 @@ function HomePage() {
         </Container>
       </Box>
 
-      {/* Features Section - unchanged */}
+      {/* Features Section */}
       <Container maxWidth="xl" sx={{ py: 6 }}>
         <Grid container spacing={3}>
           {[
@@ -217,18 +225,21 @@ function HomePage() {
             View All
           </Button>
         </Box>
-        {featuredProducts.length === 0 && !error ? (
+        {featuredProducts.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="body1" color="text.secondary">
               No featured products yet. Add some in the admin panel!
             </Typography>
+            <Button component={Link} to="/admin/products" variant="contained" sx={{ mt: 2 }}>
+              Add Products
+            </Button>
           </Box>
         ) : (
           <ProductGrid products={featuredProducts} />
         )}
       </Container>
 
-      {/* Category Showcase */}
+      {/* Category Showcase - Now with all 15 categories! */}
       <Box sx={{ bgcolor: 'grey.50', py: 6 }}>
         <Container maxWidth="xl">
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 4, textAlign: 'center' }}>
@@ -236,7 +247,7 @@ function HomePage() {
           </Typography>
           <Grid container spacing={3}>
             {categories.map((category, index) => (
-              <Grid item xs={6} sm={4} md={2.4} key={category.id}>
+              <Grid item xs={6} sm={4} md={3} lg={2.4} key={category.id}>
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -276,11 +287,14 @@ function HomePage() {
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 4 }}>
           New Arrivals
         </Typography>
-        {latestProducts.length === 0 && !error ? (
+        {latestProducts.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="body1" color="text.secondary">
               No products yet. Add some in the admin panel!
             </Typography>
+            <Button component={Link} to="/admin/products" variant="contained" sx={{ mt: 2 }}>
+              Add Products
+            </Button>
           </Box>
         ) : (
           <ProductGrid products={latestProducts} compact />
