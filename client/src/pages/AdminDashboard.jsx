@@ -93,7 +93,8 @@ function AdminDashboard() {
     { title: 'Revenue', value: `$${stats.revenue.toLocaleString()}`, icon: <AttachMoney />, color: '#4CAF50' },
     { title: 'Orders', value: stats.orders, icon: <ShoppingBag />, color: '#2196F3' },
     { title: 'Customers', value: stats.customers, icon: <People />, color: '#FF9800' },
-    { title: 'Products', value: stats.products, icon: <Store />, color: '#9C27B0' },
+    { title: 'Products', value: stats.products, icon: <Store />, color: '#9C27B0' }
+    
   ];
 
   // Quick action cards for admin
@@ -102,6 +103,7 @@ function AdminDashboard() {
     { title: 'Manage Products', icon: <Inventory />, path: '/admin/products', color: '#2196F3' },
     { title: 'View Orders', icon: <ShoppingCart />, path: '/admin/orders', color: '#FF9800' },
     { title: 'Manage Users', icon: <Person />, path: '/admin/users', color: '#9C27B0' },
+    { title: 'Manage Banners', icon: <Image />, path: '/admin/banners', color: '#E91E63' }
   ];
 
   if (loading) {
