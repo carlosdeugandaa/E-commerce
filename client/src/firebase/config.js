@@ -27,10 +27,6 @@ import {
   addDoc
 } from 'firebase/firestore';
 
-// ============================================
-// FIREBASE CONFIG
-// ============================================
-
 const firebaseConfig = {
   apiKey: "AIzaSyB1kYWgXyq0I8nkFtyb-ENMOqs58pf6RPk",
   authDomain: "e-commerce-8619f.firebaseapp.com",
@@ -46,61 +42,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
-// ============================================
-// BANNER FUNCTIONS - Add this entire block
-// ============================================
-
-export const getBanners = async () => {
-  try {
-    const q = query(
-      collection(db, 'banners'),
-      where('isActive', '==', true),
-      orderBy('order', 'asc')
-    );
-    const snapshot = await getDocs(q);
-    const banners = [];
-    snapshot.forEach(doc => banners.push({ id: doc.id, ...doc.data() }));
-    return { success: true, banners };
-  } catch (error) {
-    console.error('Error fetching banners:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-export const addBanner = async (bannerData) => {
-  try {
-    const docRef = await addDoc(collection(db, 'banners'), {
-      ...bannerData,
-      createdAt: serverTimestamp()
-    });
-    return { success: true, id: docRef.id };
-  } catch (error) {
-    console.error('Error adding banner:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-export const updateBanner = async (bannerId, bannerData) => {
-  try {
-    const docRef = doc(db, 'banners', bannerId);
-    await updateDoc(docRef, bannerData);
-    return { success: true };
-  } catch (error) {
-    console.error('Error updating banner:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-export const deleteBanner = async (bannerId) => {
-  try {
-    const docRef = doc(db, 'banners', bannerId);
-    await deleteDoc(docRef);
-    return { success: true };
-  } catch (error) {
-    console.error('Error deleting banner:', error);
-    return { success: false, error: error.message };
-  }
-};
 export { auth, db, googleProvider };
 
 // ============================================
@@ -211,7 +152,91 @@ export const getUserProfile = async (uid) => {
 };
 
 // ============================================
-// BANNER FUNCTIONS
+// PRODUCT FUNCTIONS
+// ============================================
+
+export const getProducts = async (filters = {}) => {
+  try {
+    let q = collection(db, 'products');
+    const queryConstraints = [];
+    
+    if (filters.category && filters.category !== 'all') {
+      queryConstraints.push(where('category', '==', filters.category));
+    }
+    
+    if (filters.sort === 'createdAt') {
+      queryConstraints.push(orderBy('createdAt', 'desc'));
+    }
+    
+    if (queryConstraints.length > 0) {
+      q = query(q, ...queryConstraints);
+    }
+    
+    const snapshot = await getDocs(q);
+    const products = [];
+    snapshot.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
+    return { success: true, products };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const getProduct = async (productId) => {
+  try {
+    const docRef = doc(db, 'products', productId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { success: true, product: { id: docSnap.id, ...docSnap.data() } };
+    }
+    return { success: false, error: 'Product not found' };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const addProduct = async (productData) => {
+  try {
+    if (!productData.name || !productData.price || !productData.category || productData.stock === undefined) {
+      return { success: false, error: 'Missing required fields' };
+    }
+    const docRef = await addDoc(collection(db, 'products'), {
+      ...productData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      rating: 0,
+      reviewCount: 0
+    });
+    return { success: true, id: docRef.id };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const updateProduct = async (productId, productData) => {
+  try {
+    const docRef = doc(db, 'products', productId);
+    await updateDoc(docRef, {
+      ...productData,
+      updatedAt: serverTimestamp()
+    });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const deleteProduct = async (productId) => {
+  try {
+    const docRef = doc(db, 'products', productId);
+    await deleteDoc(docRef);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// ============================================
+// BANNER FUNCTIONS - ONLY ONCE!
 // ============================================
 
 export const getBanners = async () => {
@@ -258,95 +283,6 @@ export const deleteBanner = async (bannerId) => {
     await deleteDoc(docRef);
     return { success: true };
   } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-// ============================================
-// PRODUCT FUNCTIONS (CRUD)
-// ============================================
-
-export const getProducts = async (filters = {}) => {
-  try {
-    let q = collection(db, 'products');
-    const queryConstraints = [];
-    
-    if (filters.category && filters.category !== 'all') {
-      queryConstraints.push(where('category', '==', filters.category));
-    }
-    
-    if (filters.sort === 'createdAt') {
-      queryConstraints.push(orderBy('createdAt', 'desc'));
-    }
-    
-    if (queryConstraints.length > 0) {
-      q = query(q, ...queryConstraints);
-    }
-    
-    const snapshot = await getDocs(q);
-    const products = [];
-    snapshot.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
-    return { success: true, products };
-  } catch (error) {
-    console.error('Error fetching products:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-export const getProduct = async (productId) => {
-  try {
-    const docRef = doc(db, 'products', productId);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return { success: true, product: { id: docSnap.id, ...docSnap.data() } };
-    }
-    return { success: false, error: 'Product not found' };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-export const addProduct = async (productData) => {
-  try {
-    if (!productData.name || !productData.price || !productData.category || productData.stock === undefined) {
-      return { success: false, error: 'Missing required fields' };
-    }
-
-    const docRef = await addDoc(collection(db, 'products'), {
-      ...productData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      rating: 0,
-      reviewCount: 0
-    });
-    return { success: true, id: docRef.id };
-  } catch (error) {
-    console.error('Error adding product:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-export const updateProduct = async (productId, productData) => {
-  try {
-    const docRef = doc(db, 'products', productId);
-    await updateDoc(docRef, {
-      ...productData,
-      updatedAt: serverTimestamp()
-    });
-    return { success: true };
-  } catch (error) {
-    console.error('Error updating product:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-export const deleteProduct = async (productId) => {
-  try {
-    const docRef = doc(db, 'products', productId);
-    await deleteDoc(docRef);
-    return { success: true };
-  } catch (error) {
-    console.error('Error deleting product:', error);
     return { success: false, error: error.message };
   }
 };
