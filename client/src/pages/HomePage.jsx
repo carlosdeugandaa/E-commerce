@@ -12,6 +12,13 @@ import {
   CircularProgress,
   Collapse,
   IconButton,
+  CardMedia,
+  CardActionArea,
+  Chip,
+  Stack,
+  Avatar,
+  Fade,
+  Slide,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import {
@@ -21,20 +28,26 @@ import {
   ArrowForward,
   ExpandMore,
   ExpandLess,
+  NavigateNext,
+  NavigateBefore,
+  ShoppingBag,
+  TrendingUp,
+  Stars,
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import ProductGrid from '../components/products/ProductGrid';
-import { getProducts } from '../firebase/config';
+import { getProducts, getBanners } from '../firebase/config';
 import { categories } from '../utils/constants';
 
 function HomePage() {
   const theme = useTheme();
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [latestProducts, setLatestProducts] = useState([]);
+  const [trendingProducts, setTrendingProducts] = useState([]);
+  const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
   const [categoriesExpanded, setCategoriesExpanded] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
   
   // Check if user is admin
   const [isAdmin, setIsAdmin] = useState(false);
@@ -51,206 +64,385 @@ function HomePage() {
     }
   }, []);
 
+  // Auto-slide effect
   useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        const result = await getProducts();
-        if (result.success) {
-          const allProducts = result.products || [];
-          const validProducts = allProducts.filter(p => {
-            const hasName = p.name && typeof p.name === 'string';
-            const hasPrice = typeof p.price === 'number';
-            const hasCategory = p.category && typeof p.category === 'string';
-            return hasName && hasPrice && hasCategory;
-          });
+    if (banners.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % banners.length);
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [banners.length]);
 
-          if (validProducts.length === 0) {
-            setErrorMessage('No valid products found. Please add products with name, price, and category.');
-            setFeaturedProducts([]);
-            setLatestProducts([]);
-          } else {
-            setFeaturedProducts(validProducts.filter(p => p.isFeatured).slice(0, 4));
-            setLatestProducts(validProducts.slice(0, 6));
-            setErrorMessage('');
-          }
-          setError(false);
-        } else {
-          setError(true);
-          setErrorMessage('Failed to load products from Firestore.');
-        }
-      } catch (error) {
-        console.error('Error loading products:', error);
-        setError(true);
-        setErrorMessage(error.message || 'An error occurred while loading products.');
-      } finally {
-        setLoading(false);
+  const loadData = async () => {
+    try {
+      const [productsResult, bannersResult] = await Promise.all([
+        getProducts(),
+        getBanners(),
+      ]);
+
+      if (productsResult.success) {
+        const allProducts = productsResult.products || [];
+        const validProducts = allProducts.filter(p => p.name && typeof p.name === 'string' && typeof p.price === 'number');
+        
+        setFeaturedProducts(validProducts.filter(p => p.isFeatured).slice(0, 4));
+        setLatestProducts(validProducts.slice(0, 4));
+        setTrendingProducts(validProducts.slice(4, 8));
       }
-    };
-    loadProducts();
+
+      if (bannersResult.success) {
+        setBanners(bannersResult.banners);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
-  const handleCategoriesToggle = () => {
-    setCategoriesExpanded(!categoriesExpanded);
+  const handlePrevSlide = () => {
+    setCurrentSlide((prev) => (prev === 0 ? banners.length - 1 : prev - 1));
   };
+
+  const handleNextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % banners.length);
+  };
+
+  const features = [
+    { icon: <LocalShipping sx={{ fontSize: 32 }} />, title: 'Free Shipping', desc: 'On orders over $50' },
+    { icon: <VerifiedUser sx={{ fontSize: 32 }} />, title: 'Secure Payment', desc: '100% secure transactions' },
+    { icon: <SupportAgent sx={{ fontSize: 32 }} />, title: '24/7 Support', desc: 'Dedicated support team' },
+  ];
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
         <CircularProgress />
       </Box>
     );
   }
 
-  if (error) {
-    return (
-      <Container maxWidth="xl" sx={{ py: 8, textAlign: 'center' }}>
-        <Typography variant="h5" color="error" gutterBottom>
-          ⚠️ Unable to Load Products
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          {errorMessage || 'Please check your Firestore configuration.'}
-        </Typography>
-        <Button 
-          variant="contained" 
-          sx={{ mt: 3 }}
-          onClick={() => window.location.reload()}
-        >
-          Retry
-        </Button>
-      </Container>
-    );
-  }
-
   return (
-    <Box sx={{ overflow: 'hidden' }}>
-      {/* Hero Section */}
-      <Box
-        sx={{
-          bgcolor: 'primary.main',
-          color: 'white',
-          py: { xs: 6, md: 10 },
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        <Container maxWidth="xl">
-          <Grid container spacing={4} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.8 }}
+    <Box sx={{ bgcolor: '#f5f7fa' }}>
+      {/* ===== HERO CAROUSEL ===== */}
+      <Box sx={{ position: 'relative', width: '100%', height: { xs: 250, sm: 350, md: 450 }, overflow: 'hidden' }}>
+        {banners.length > 0 ? (
+          banners.map((banner, index) => (
+            <Box
+              key={banner.id}
+              sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                opacity: index === currentSlide ? 1 : 0,
+                transition: 'opacity 0.8s ease-in-out',
+              }}
+            >
+              <Box
+                component="img"
+                src={banner.image}
+                alt={banner.title}
+                sx={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  background: 'linear-gradient(45deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.1) 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: { xs: 3, md: 6 },
+                }}
               >
-                <Typography variant="overline" sx={{ color: 'primary.light', fontWeight: 600 }}>
-                  Summer Sale
-                </Typography>
-                <Typography variant="h1" sx={{ fontWeight: 700, mb: 2 }}>
-                  Discover Amazing
-                  <br />
-                  Deals Today!
-                </Typography>
-                <Typography variant="h5" sx={{ color: 'primary.light', mb: 4, fontWeight: 400 }}>
-                  Up to 70% off on selected items
-                </Typography>
-                <Button
-                  variant="contained"
-                  size="large"
-                  component={Link}
-                  to="/products"
-                  endIcon={<ArrowForward />}
-                  sx={{
-                    bgcolor: 'white',
-                    color: 'primary.main',
-                    '&:hover': {
-                      bgcolor: 'grey.100',
-                    },
-                  }}
-                >
-                  Shop Now
-                </Button>
-              </motion.div>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <motion.div
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                style={{ textAlign: 'center' }}
-              >
+                <Box sx={{ maxWidth: 600, color: 'white' }}>
+                  <Typography variant="h2" sx={{ fontWeight: 700, fontSize: { xs: '1.5rem', sm: '2.5rem', md: '3.5rem' } }}>
+                    {banner.title}
+                  </Typography>
+                  <Typography variant="h5" sx={{ mt: 1, opacity: 0.9, fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' } }}>
+                    {banner.subtitle}
+                  </Typography>
+                  <Button
+                    component={Link}
+                    to={banner.link || '/products'}
+                    variant="contained"
+                    size="large"
+                    sx={{ mt: 3, bgcolor: '#ff6b00', '&:hover': { bgcolor: '#e55a00' } }}
+                  >
+                    {banner.buttonText || 'Shop Now'}
+                  </Button>
+                </Box>
+              </Box>
+            </Box>
+          ))
+        ) : (
+          <Box sx={{ width: '100%', height: '100%', bgcolor: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+            <Typography variant="h4">Summer Sale - Up to 70% OFF</Typography>
+          </Box>
+        )}
+
+        {/* Navigation Arrows */}
+        {banners.length > 1 && (
+          <>
+            <IconButton
+              onClick={handlePrevSlide}
+              sx={{
+                position: 'absolute',
+                left: 16,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                bgcolor: 'rgba(0,0,0,0.5)',
+                color: 'white',
+                '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
+              }}
+            >
+              <NavigateBefore />
+            </IconButton>
+            <IconButton
+              onClick={handleNextSlide}
+              sx={{
+                position: 'absolute',
+                right: 16,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                bgcolor: 'rgba(0,0,0,0.5)',
+                color: 'white',
+                '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
+              }}
+            >
+              <NavigateNext />
+            </IconButton>
+
+            {/* Indicators */}
+            <Box
+              sx={{
+                position: 'absolute',
+                bottom: 16,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'flex',
+                gap: 1,
+              }}
+            >
+              {banners.map((_, index) => (
                 <Box
-                  component="img"
-                  src="https://images.unsplash.com/photo-1557821552-17105176677c?w=600&h=400&fit=crop"
-                  alt="Shopping"
+                  key={index}
+                  onClick={() => setCurrentSlide(index)}
                   sx={{
-                    width: '100%',
-                    maxWidth: 500,
-                    borderRadius: 4,
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    bgcolor: index === currentSlide ? '#ff6b00' : 'rgba(255,255,255,0.5)',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s',
                   }}
                 />
-              </motion.div>
-            </Grid>
-          </Grid>
-        </Container>
+              ))}
+            </Box>
+          </>
+        )}
       </Box>
 
-      {/* Features Section */}
-      <Container maxWidth="xl" sx={{ py: 6 }}>
-        <Grid container spacing={3}>
-          {[
-            { icon: <LocalShipping />, title: 'Free Shipping', desc: 'On orders over $50' },
-            { icon: <VerifiedUser />, title: 'Secure Payment', desc: '100% secure transactions' },
-            { icon: <SupportAgent />, title: '24/7 Support', desc: 'Dedicated support team' },
-          ].map((feature, index) => (
-            <Grid item xs={12} sm={6} md={4} key={index}>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
+      {/* ===== FEATURES BAR ===== */}
+      <Container maxWidth="xl" sx={{ py: 3 }}>
+        <Grid container spacing={2} justifyContent="center">
+          {features.map((feature, index) => (
+            <Grid item xs={12} sm={4} key={index}>
+              <Paper
+                sx={{
+                  p: 2,
+                  textAlign: 'center',
+                  bgcolor: 'white',
+                  borderRadius: 3,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 2,
+                }}
               >
-                <Paper
-                  sx={{
-                    p: 3,
-                    textAlign: 'center',
-                    height: '100%',
-                    transition: 'transform 0.2s',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                    },
-                  }}
-                >
-                  <Box sx={{ color: 'primary.main', fontSize: 40, mb: 2 }}>
-                    {feature.icon}
-                  </Box>
-                  <Typography variant="h6" gutterBottom>
-                    {feature.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {feature.desc}
-                  </Typography>
-                </Paper>
-              </motion.div>
+                <Box sx={{ color: '#ff6b00' }}>{feature.icon}</Box>
+                <Box>
+                  <Typography variant="body1" fontWeight={600}>{feature.title}</Typography>
+                  <Typography variant="caption" color="text.secondary">{feature.desc}</Typography>
+                </Box>
+              </Paper>
             </Grid>
           ))}
         </Grid>
       </Container>
 
-      {/* Featured Products */}
-      <Container maxWidth="xl" sx={{ py: 6 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 700 }}>
-            Featured Products
+      {/* ===== TODAY'S DEALS (Scrolling Cards) ===== */}
+      {latestProducts.length > 0 && (
+        <Container maxWidth="xl" sx={{ py: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h5" fontWeight={700}>
+              🔥 Today's Deals
+            </Typography>
+            <Button component={Link} to="/products" endIcon={<ArrowForward />} size="small">
+              View All
+            </Button>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 2, '&::-webkit-scrollbar': { height: 6 }, '&::-webkit-scrollbar-thumb': { bgcolor: '#ddd', borderRadius: 3 } }}>
+            {latestProducts.map((product) => (
+              <Card key={product.id} sx={{ minWidth: 200, maxWidth: 200, flexShrink: 0, borderRadius: 3, overflow: 'hidden' }}>
+                <CardActionArea component={Link} to={`/product/${product.id}`}>
+                  <Box sx={{ height: 150, overflow: 'hidden' }}>
+                    <CardMedia
+                      component="img"
+                      image={product.image || 'https://via.placeholder.com/200x150'}
+                      alt={product.name}
+                      sx={{ height: '100%', objectFit: 'cover' }}
+                    />
+                  </Box>
+                  <CardContent sx={{ p: 1.5 }}>
+                    <Typography variant="body2" fontWeight={500} noWrap>{product.name}</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body1" fontWeight={700} color="#ff6b00">
+                        ${(product.discountedPrice || product.price).toFixed(2)}
+                      </Typography>
+                      {product.originalPrice && (
+                        <Typography variant="caption" color="text.secondary" sx={{ textDecoration: 'line-through' }}>
+                          ${product.originalPrice.toFixed(2)}
+                        </Typography>
+                      )}
+                    </Box>
+                    {product.discount > 0 && (
+                      <Chip label={`-${product.discount}%`} size="small" color="error" sx={{ mt: 0.5 }} />
+                    )}
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+            ))}
+          </Box>
+        </Container>
+      )}
+
+      {/* ===== SHOP BY CATEGORY ===== */}
+      <Box sx={{ bgcolor: 'white', py: 4 }}>
+        <Container maxWidth="xl">
+          <Typography variant="h5" fontWeight={700} sx={{ mb: 3 }}>
+            Shop by Category
           </Typography>
-          <Button component={Link} to="/products" endIcon={<ArrowForward />}>
+
+          {/* Desktop: Show all categories */}
+          <Grid container spacing={2} sx={{ display: { xs: 'none', md: 'flex' } }}>
+            {categories.map((category) => (
+              <Grid item xs={6} sm={4} md={3} lg={2.4} key={category.id}>
+                <Card
+                  component={Link}
+                  to={`/products?category=${category.id}`}
+                  sx={{
+                    textDecoration: 'none',
+                    cursor: 'pointer',
+                    borderRadius: 3,
+                    transition: 'all 0.3s',
+                    '&:hover': { transform: 'translateY(-4px)', boxShadow: theme.shadows[4] },
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                    <Avatar sx={{ bgcolor: '#fff0e6', color: '#ff6b00', width: 48, height: 48, mx: 'auto', mb: 1 }}>
+                      {category.icon}
+                    </Avatar>
+                    <Typography variant="body2" fontWeight={600}>{category.name}</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+
+          {/* Mobile: Show 4 categories, rest hidden under collapsible */}
+          <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+            <Grid container spacing={2}>
+              {categories.slice(0, 4).map((category) => (
+                <Grid item xs={3} key={category.id}>
+                  <Card
+                    component={Link}
+                    to={`/products?category=${category.id}`}
+                    sx={{
+                      textDecoration: 'none',
+                      cursor: 'pointer',
+                      borderRadius: 2,
+                      '&:hover': { transform: 'translateY(-2px)', boxShadow: theme.shadows[2] },
+                    }}
+                  >
+                    <CardContent sx={{ textAlign: 'center', py: 1.5 }}>
+                      <Avatar sx={{ bgcolor: '#fff0e6', color: '#ff6b00', width: 40, height: 40, mx: 'auto', mb: 0.5 }}>
+                        {category.icon}
+                      </Avatar>
+                      <Typography variant="caption" fontWeight={600}>{category.name}</Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+
+            <Box sx={{ textAlign: 'center', mt: 2 }}>
+              <Button
+                onClick={() => setCategoriesExpanded(!categoriesExpanded)}
+                endIcon={categoriesExpanded ? <ExpandLess /> : <ExpandMore />}
+                variant="outlined"
+                size="small"
+                sx={{ borderRadius: 20 }}
+              >
+                {categoriesExpanded ? 'Show Less' : `+ ${categories.length - 4} More Categories`}
+              </Button>
+            </Box>
+
+            <Collapse in={categoriesExpanded}>
+              <Grid container spacing={2} sx={{ mt: 1 }}>
+                {categories.slice(4).map((category) => (
+                  <Grid item xs={3} key={category.id}>
+                    <Card
+                      component={Link}
+                      to={`/products?category=${category.id}`}
+                      sx={{
+                        textDecoration: 'none',
+                        cursor: 'pointer',
+                        borderRadius: 2,
+                        '&:hover': { transform: 'translateY(-2px)', boxShadow: theme.shadows[2] },
+                      }}
+                    >
+                      <CardContent sx={{ textAlign: 'center', py: 1.5 }}>
+                        <Avatar sx={{ bgcolor: '#fff0e6', color: '#ff6b00', width: 40, height: 40, mx: 'auto', mb: 0.5 }}>
+                          {category.icon}
+                        </Avatar>
+                        <Typography variant="caption" fontWeight={600}>{category.name}</Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Collapse>
+          </Box>
+        </Container>
+      </Box>
+
+      {/* ===== FEATURED PRODUCTS ===== */}
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h5" fontWeight={700}>
+            ⭐ Featured Products
+          </Typography>
+          <Button component={Link} to="/products" endIcon={<ArrowForward />} size="small">
             View All
           </Button>
         </Box>
         {featuredProducts.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Typography variant="body1" color="text.secondary">
-              No featured products yet.
-            </Typography>
-            {/* ✅ Only show Add Products button if user is admin */}
+          <Box sx={{ textAlign: 'center', py: 4, bgcolor: 'white', borderRadius: 3 }}>
+            <Typography variant="body1" color="text.secondary">No featured products yet.</Typography>
             {isAdmin && (
               <Button component={Link} to="/admin/products" variant="contained" sx={{ mt: 2 }}>
                 Add Products
@@ -262,138 +454,36 @@ function HomePage() {
         )}
       </Container>
 
-      {/* Category Showcase - Collapsible on Mobile */}
-      <Box sx={{ bgcolor: 'grey.50', py: 6 }}>
-        <Container maxWidth="xl">
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
-            <Typography variant="h4" sx={{ fontWeight: 700 }}>
-              Shop by Category
-            </Typography>
-            <IconButton 
-              onClick={handleCategoriesToggle} 
-              sx={{ display: { xs: 'flex', md: 'none' } }}
-            >
-              {categoriesExpanded ? <ExpandLess /> : <ExpandMore />}
-            </IconButton>
-          </Box>
+      {/* ===== TRENDING PRODUCTS ===== */}
+      {trendingProducts.length > 0 && (
+        <Box sx={{ bgcolor: 'white', py: 4 }}>
+          <Container maxWidth="xl">
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h5" fontWeight={700}>
+                🔥 Trending Now
+              </Typography>
+              <Button component={Link} to="/products" endIcon={<ArrowForward />} size="small">
+                View All
+              </Button>
+            </Box>
+            <ProductGrid products={trendingProducts} />
+          </Container>
+        </Box>
+      )}
 
-          {/* Desktop View - Always visible */}
-          <Grid container spacing={3} sx={{ display: { xs: 'none', md: 'flex' } }}>
-            {categories.map((category, index) => (
-              <Grid item xs={6} sm={4} md={3} lg={2.4} key={category.id}>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: index * 0.05 }}
-                >
-                  <Card
-                    component={Link}
-                    to={`/products?category=${category.id}`}
-                    sx={{
-                      textDecoration: 'none',
-                      cursor: 'pointer',
-                      transition: 'transform 0.2s',
-                      '&:hover': {
-                        transform: 'translateY(-4px)',
-                        boxShadow: theme.shadows[4],
-                      },
-                    }}
-                  >
-                    <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                      <Box sx={{ fontSize: 32, color: 'primary.main', display: 'flex', justifyContent: 'center' }}>
-                        {category.icon}
-                      </Box>
-                      <Typography variant="body1" fontWeight={600} sx={{ mt: 1 }}>
-                        {category.name}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </Grid>
-            ))}
-          </Grid>
-
-          {/* Mobile View - Collapsible */}
-          <Collapse in={categoriesExpanded} sx={{ display: { xs: 'block', md: 'none' } }}>
-            <Grid container spacing={2}>
-              {categories.map((category, index) => (
-                <Grid item xs={6} sm={4} key={category.id}>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3, delay: index * 0.03 }}
-                  >
-                    <Card
-                      component={Link}
-                      to={`/products?category=${category.id}`}
-                      sx={{
-                        textDecoration: 'none',
-                        cursor: 'pointer',
-                        transition: 'transform 0.2s',
-                        '&:hover': {
-                          transform: 'translateY(-2px)',
-                          boxShadow: theme.shadows[4],
-                        },
-                      }}
-                    >
-                      <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                        <Box sx={{ fontSize: 28, color: 'primary.main', display: 'flex', justifyContent: 'center' }}>
-                          {category.icon}
-                        </Box>
-                        <Typography variant="body2" fontWeight={600} sx={{ mt: 0.5 }}>
-                          {category.name}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                </Grid>
-              ))}
-            </Grid>
-          </Collapse>
-
-          {/* Mobile: Show first 6 categories when collapsed */}
-          <Grid container spacing={2} sx={{ display: { xs: 'flex', md: 'none' } }}>
-            {!categoriesExpanded && categories.slice(0, 6).map((category, index) => (
-              <Grid item xs={4} sm={3} key={category.id}>
-                <Card
-                  component={Link}
-                  to={`/products?category=${category.id}`}
-                  sx={{
-                    textDecoration: 'none',
-                    cursor: 'pointer',
-                    transition: 'transform 0.2s',
-                    '&:hover': {
-                      transform: 'translateY(-2px)',
-                      boxShadow: theme.shadows[4],
-                    },
-                  }}
-                >
-                  <CardContent sx={{ textAlign: 'center', py: 1.5 }}>
-                    <Box sx={{ fontSize: 24, color: 'primary.main', display: 'flex', justifyContent: 'center' }}>
-                      {category.icon}
-                    </Box>
-                    <Typography variant="caption" fontWeight={600}>
-                      {category.name}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Container>
-      </Box>
-
-      {/* Latest Products */}
-      <Container maxWidth="xl" sx={{ py: 6 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 4 }}>
-          New Arrivals
-        </Typography>
+      {/* ===== NEW ARRIVALS ===== */}
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h5" fontWeight={700}>
+            🆕 New Arrivals
+          </Typography>
+          <Button component={Link} to="/products" endIcon={<ArrowForward />} size="small">
+            View All
+          </Button>
+        </Box>
         {latestProducts.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Typography variant="body1" color="text.secondary">
-              No products yet.
-            </Typography>
-            {/* ✅ Only show Add Products button if user is admin */}
+          <Box sx={{ textAlign: 'center', py: 4, bgcolor: 'white', borderRadius: 3 }}>
+            <Typography variant="body1" color="text.secondary">No products yet.</Typography>
             {isAdmin && (
               <Button component={Link} to="/admin/products" variant="contained" sx={{ mt: 2 }}>
                 Add Products
@@ -401,7 +491,7 @@ function HomePage() {
             )}
           </Box>
         ) : (
-          <ProductGrid products={latestProducts} compact />
+          <ProductGrid products={latestProducts} />
         )}
       </Container>
     </Box>
