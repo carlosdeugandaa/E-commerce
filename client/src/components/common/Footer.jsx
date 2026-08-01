@@ -28,7 +28,7 @@ function Footer() {
           {/* Company Info */}
           <Grid item xs={12} md={4}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>
-              🛍️ ShopHub
+              🛍️ Ddukastore
             </Typography>
             <Typography variant="body2" sx={{ color: 'grey.400', mb: 2 }}>
               Your one-stop shop for quality products at the best prices.
@@ -124,7 +124,7 @@ function Footer() {
 
         <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
           <Typography variant="body2" sx={{ color: 'grey.400' }}>
-            © {currentYear} dukkastore. All rights reserved.
+            © {currentYear} Dukkastore. All rights reserved.
           </Typography>
           <Box sx={{ display: 'flex', gap: 3 }}>
             <Link href="#" color="grey.400" underline="hover" variant="body2">
