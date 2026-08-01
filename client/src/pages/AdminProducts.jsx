@@ -1,3 +1,4 @@
+// client/src/pages/AdminProducts.jsx
 import React, { useState, useEffect } from 'react';
 import {
   Container,
@@ -58,40 +59,49 @@ function AdminProducts() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [error, setError] = useState(false);
   const itemsPerPage = 10;
 
-  // Load products from Firestore
   const loadProducts = async () => {
     setLoading(true);
-    const result = await getProducts();
-    if (result.success) {
-      setProducts(result.products);
-    } else {
-      toast.error('Failed to load products');
+    setError(false);
+    try {
+      const result = await getProducts();
+      if (result.success) {
+        // ✅ Filter out invalid products
+        const validProducts = result.products.filter(p => p.name && typeof p.name === 'string');
+        setProducts(validProducts);
+        if (validProducts.length === 0) {
+          toast.info('No products found. Add your first product!');
+        }
+      } else {
+        setError(true);
+        toast.error('Failed to load products');
+      }
+    } catch (error) {
+      setError(true);
+      toast.error('Error loading products');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
     loadProducts();
   }, []);
 
-  // Filter products
   const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (product.name || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'all' || product.category === filterCategory;
     return matchesSearch && matchesCategory;
   });
 
-  // Pagination
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const displayedProducts = filteredProducts.slice(
     (page - 1) * itemsPerPage,
     page * itemsPerPage
   );
 
-  // Handlers
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
     setPage(1);
@@ -124,7 +134,7 @@ function AdminProducts() {
         setProducts(products.filter(p => p.id !== productToDelete.id));
         setSnackbar({
           open: true,
-          message: `${productToDelete.name} deleted successfully!`,
+          message: `${productToDelete.name || 'Product'} deleted successfully!',
           severity: 'success',
         });
       } else {
@@ -141,7 +151,7 @@ function AdminProducts() {
 
   const handleFormSubmit = () => {
     setFormOpen(false);
-    loadProducts(); // Reload products after add/edit
+    loadProducts();
   };
 
   const handleFormClose = () => {
@@ -169,6 +179,24 @@ function AdminProducts() {
     );
   }
 
+  if (error) {
+    return (
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="h6" color="error" gutterBottom>
+            Unable to load products
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Please check your Firebase configuration and try again.
+          </Typography>
+          <Button variant="contained" sx={{ mt: 2 }} onClick={loadProducts}>
+            Retry
+          </Button>
+        </Paper>
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <motion.div
@@ -176,7 +204,6 @@ function AdminProducts() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 700 }}>
@@ -195,7 +222,6 @@ function AdminProducts() {
           </Button>
         </Box>
 
-        {/* Search and Filter */}
         <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
           <TextField
             size="small"
@@ -204,17 +230,11 @@ function AdminProducts() {
             onChange={handleSearch}
             sx={{ flex: 1, minWidth: 200 }}
             InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search />
-                </InputAdornment>
-              ),
+              startAdornment: <Search />,
               endAdornment: searchTerm && (
-                <InputAdornment position="end">
-                  <IconButton size="small" onClick={handleClearSearch}>
-                    <Close />
-                  </IconButton>
-                </InputAdornment>
+                <IconButton size="small" onClick={handleClearSearch}>
+                  <Close />
+                </IconButton>
               ),
             }}
           />
@@ -224,7 +244,6 @@ function AdminProducts() {
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
               label="Category"
-              startAdornment={<FilterList sx={{ mr: 1, color: 'text.secondary' }} />}
             >
               <MenuItem value="all">All Categories</MenuItem>
               <MenuItem value="electronics">Electronics</MenuItem>
@@ -236,7 +255,6 @@ function AdminProducts() {
           </FormControl>
         </Box>
 
-        {/* Products Table */}
         <Paper sx={{ overflow: 'hidden' }}>
           <TableContainer>
             <Table>
@@ -258,8 +276,8 @@ function AdminProducts() {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Box
                             component="img"
-                            src={product.image}
-                            alt={product.name}
+                            src={product.image || 'https://via.placeholder.com/50'}
+                            alt={product.name || 'Product'}
                             sx={{
                               width: 50,
                               height: 50,
@@ -269,7 +287,7 @@ function AdminProducts() {
                           />
                           <Box>
                             <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {product.name}
+                              {product.name || 'Unnamed Product'}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
                               {product.brand || 'No brand'}
@@ -279,14 +297,14 @@ function AdminProducts() {
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={product.category}
+                          label={product.category || 'Uncategorized'}
                           size="small"
                           color={getCategoryColor(product.category)}
                         />
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" fontWeight={600}>
-                          ${product.price.toFixed(2)}
+                          ${(product.price || 0).toFixed(2)}
                         </Typography>
                         {product.discount > 0 && (
                           <Typography variant="caption" color="error">
@@ -296,39 +314,26 @@ function AdminProducts() {
                       </TableCell>
                       <TableCell align="center">
                         <Chip
-                          label={product.stock}
+                          label={product.stock ?? 'N/A'}
                           size="small"
                           color={product.stock > 10 ? 'success' : product.stock > 0 ? 'warning' : 'error'}
                         />
                       </TableCell>
                       <TableCell align="center">
                         <Chip
-                          label={product.stock > 0 ? 'Active' : 'Out of Stock'}
+                          label={product.isActive !== false ? 'Active' : 'Inactive'}
                           size="small"
-                          color={product.stock > 0 ? 'success' : 'error'}
+                          color={product.isActive !== false ? 'success' : 'error'}
                         />
                       </TableCell>
                       <TableCell align="right">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEditProduct(product)}
-                          color="primary"
-                        >
+                        <IconButton size="small" onClick={() => handleEditProduct(product)} color="primary">
                           <Edit />
                         </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDeleteClick(product)}
-                          color="error"
-                        >
+                        <IconButton size="small" onClick={() => handleDeleteClick(product)} color="error">
                           <Delete />
                         </IconButton>
-                        <IconButton
-                          size="small"
-                          component="a"
-                          href={`/product/${product.id}`}
-                          target="_blank"
-                        >
+                        <IconButton size="small" href={`/product/${product.id}`} target="_blank">
                           <Visibility />
                         </IconButton>
                       </TableCell>
@@ -338,17 +343,8 @@ function AdminProducts() {
                   <TableRow>
                     <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                       <Typography variant="body1" color="text.secondary">
-                        No products found
+                        No products found. Click "Add Product" to create your first product!
                       </Typography>
-                      {searchTerm && (
-                        <Button
-                          size="small"
-                          onClick={handleClearSearch}
-                          sx={{ mt: 1 }}
-                        >
-                          Clear Search
-                        </Button>
-                      )}
                     </TableCell>
                   </TableRow>
                 )}
@@ -356,7 +352,6 @@ function AdminProducts() {
             </Table>
           </TableContainer>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
               <Pagination
@@ -371,24 +366,13 @@ function AdminProducts() {
         </Paper>
       </motion.div>
 
-      {/* Add/Edit Product Dialog */}
-      <Dialog
-        open={formOpen}
-        onClose={handleFormClose}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: { borderRadius: 3 }
-        }}
-      >
+      <Dialog open={formOpen} onClose={handleFormClose} maxWidth="md" fullWidth>
         <DialogTitle>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="h6">
               {selectedProduct ? 'Edit Product' : 'Add New Product'}
             </Typography>
-            <IconButton onClick={handleFormClose}>
-              <Close />
-            </IconButton>
+            <IconButton onClick={handleFormClose}><Close /></IconButton>
           </Box>
         </DialogTitle>
         <DialogContent dividers>
@@ -400,39 +384,26 @@ function AdminProducts() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Delete Product</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete "{productToDelete?.name}"?
-            This action cannot be undone.
+            Are you sure you want to delete "{productToDelete?.name || 'this product'}"?
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-            Delete
-          </Button>
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained">Delete</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-        >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity}>
           {snackbar.message}
         </Alert>
       </Snackbar>
