@@ -22,7 +22,7 @@ import {
 import { Link } from 'react-router-dom';
 import ProductGrid from '../components/products/ProductGrid';
 import { getProducts } from '../firebase/config';
-
+import { categories } from '../utils/constants';
 function HomePage() {
   const theme = useTheme();
   const [featuredProducts, setFeaturedProducts] = useState([]);
