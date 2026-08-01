@@ -30,6 +30,7 @@ import {
   useTheme,
   Tab,
   Tabs,
+  Grid,
 } from '@mui/material';
 import {
   Search,
@@ -43,10 +44,12 @@ import {
   Cancel,
   Receipt,
   Close,
+  TrackChanges,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { getAllOrders, updateOrderStatus } from '../firebase/config';
+import AdminOrderDetails from './AdminOrderDetails';
 
 function AdminOrders() {
   const theme = useTheme();
@@ -64,7 +67,6 @@ function AdminOrders() {
   const [updating, setUpdating] = useState(false);
   const itemsPerPage = 8;
 
-  // Load orders from Firestore
   const loadOrders = async () => {
     setLoading(true);
     try {
@@ -104,6 +106,20 @@ function AdminOrders() {
       case 'shipped': return <LocalShipping fontSize="small" />;
       case 'cancelled': return <Cancel fontSize="small" />;
       default: return <Pending fontSize="small" />;
+    }
+  };
+
+  const formatDate = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch (error) {
+      return 'N/A';
     }
   };
 
@@ -170,7 +186,7 @@ function AdminOrders() {
         toast.success(`Order status updated to ${newStatus}`);
         setStatusDialogOpen(false);
         setSelectedOrder(null);
-        loadOrders(); // Refresh orders
+        loadOrders();
       } else {
         toast.error('Failed to update order status');
       }
@@ -222,7 +238,7 @@ function AdminOrders() {
           sx={{ mb: 3 }}
         >
           <Tab label="All" />
-          <Tab label="Pending" />
+          <Tab label="Pending/Processing" />
           <Tab label="Shipped" />
           <Tab label="Delivered" />
           <Tab label="Cancelled" />
@@ -294,7 +310,7 @@ function AdminOrders() {
                         <Typography variant="body2">{order.userId || 'Unknown'}</Typography>
                       </TableCell>
                       <TableCell align="center">
-                        {order.createdAt?.toDate?.().toLocaleDateString() || 'N/A'}
+                        {formatDate(order.createdAt)}
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -367,46 +383,12 @@ function AdminOrders() {
       >
         <DialogTitle>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h6">Order #{selectedOrder?.id?.slice(-6)}</Typography>
+            <Typography variant="h6">Order #{selectedOrder?.id?.slice(-6) || 'N/A'}</Typography>
             <IconButton onClick={handleCloseDetails}><Close /></IconButton>
           </Box>
         </DialogTitle>
         <DialogContent dividers>
-          {selectedOrder && (
-            <Box>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="text.secondary">Status</Typography>
-                  <Chip
-                    icon={getStatusIcon(selectedOrder.orderStatus)}
-                    label={selectedOrder.orderStatus || 'pending'}
-                    color={getStatusColor(selectedOrder.orderStatus)}
-                    size="small"
-                    sx={{ mt: 0.5 }}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="text.secondary">Total</Typography>
-                  <Typography variant="body1" fontWeight={600}>
-                    ${selectedOrder.totalAmount?.toFixed(2) || '0.00'}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography variant="caption" color="text.secondary">Customer</Typography>
-                  <Typography variant="body2">{selectedOrder.userId || 'Unknown'}</Typography>
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography variant="caption" color="text.secondary">Items</Typography>
-                  {(selectedOrder.items || []).map((item, idx) => (
-                    <Box key={idx} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5, borderBottom: '1px solid #f0f0f0' }}>
-                      <Typography variant="body2">{item.name} x {item.quantity}</Typography>
-                      <Typography variant="body2">${(item.price * item.quantity).toFixed(2)}</Typography>
-                    </Box>
-                  ))}
-                </Grid>
-              </Grid>
-            </Box>
-          )}
+          <AdminOrderDetails order={selectedOrder} loading={false} />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDetails}>Close</Button>
