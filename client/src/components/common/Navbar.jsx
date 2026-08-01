@@ -57,6 +57,7 @@ function Navbar() {
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
 
+  // Load counts from localStorage
   useEffect(() => {
     const updateCounts = () => {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
@@ -64,10 +65,12 @@ function Navbar() {
       const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
       setWishlistCount(wishlist.length);
     };
+
     updateCounts();
     window.addEventListener('storage', updateCounts);
     window.addEventListener('cartUpdated', updateCounts);
     window.addEventListener('wishlistUpdated', updateCounts);
+
     return () => {
       window.removeEventListener('storage', updateCounts);
       window.removeEventListener('cartUpdated', updateCounts);
@@ -75,6 +78,7 @@ function Navbar() {
     };
   }, []);
 
+  // Load user from localStorage
   useEffect(() => {
     const loadUser = () => {
       const userData = localStorage.getItem('user');
@@ -85,6 +89,7 @@ function Navbar() {
           setIsLoggedIn(true);
           setIsAdmin(parsedUser.role === 'admin');
         } catch (error) {
+          console.error('Error parsing user data:', error);
           localStorage.removeItem('user');
           setUser(null);
           setIsLoggedIn(false);
@@ -96,8 +101,10 @@ function Navbar() {
         setIsAdmin(false);
       }
     };
+
     loadUser();
     window.addEventListener('storage', loadUser);
+
     return () => {
       window.removeEventListener('storage', loadUser);
     };
@@ -123,13 +130,27 @@ function Navbar() {
   const handleLogout = async () => {
     handleMenuClose();
     await logoutUser();
+    
+    // ✅ Clear everything on logout
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('cart');
+    localStorage.removeItem('wishlist');
+    
+    // ✅ Reset all state
     setUser(null);
     setIsLoggedIn(false);
     setIsAdmin(false);
+    setCartCount(0);
+    setWishlistCount(0);
+    
+    // ✅ Force immediate update
     window.dispatchEvent(new Event('storage'));
-    toast.success('Logged out successfully!');
+    
+    toast.success('Logged out successfully!', {
+      position: 'bottom-right',
+    });
+    
     navigate('/login');
   };
 
@@ -150,6 +171,7 @@ function Navbar() {
                 <MenuIcon />
               </IconButton>
             )}
+
             <Typography
               variant="h5"
               component={Link}
@@ -165,13 +187,18 @@ function Navbar() {
                 fontSize: isMobile ? '1.25rem' : '1.5rem',
               }}
             >
-              🛍️ DdukaStore
+              🛍️ ShopHub
             </Typography>
+
             {!isMobile && (
               <Box
                 component="form"
                 onSubmit={handleSearch}
-                sx={{ flexGrow: 1, maxWidth: '500px', mx: 4 }}
+                sx={{
+                  flexGrow: 1,
+                  maxWidth: '500px',
+                  mx: 4,
+                }}
               >
                 <TextField
                   fullWidth
@@ -195,6 +222,7 @@ function Navbar() {
                 />
               </Box>
             )}
+
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {isMobile ? (
                 <IconButton onClick={handleSearch}>
@@ -212,6 +240,7 @@ function Navbar() {
                       <Favorite />
                     </Badge>
                   </IconButton>
+
                   <IconButton
                     color="inherit"
                     component={Link}
@@ -223,6 +252,7 @@ function Navbar() {
                   </IconButton>
                 </>
               )}
+
               {isLoggedIn ? (
                 <>
                   <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
@@ -254,6 +284,7 @@ function Navbar() {
                       </Typography>
                     </Box>
                     <Divider />
+                    
                     <MenuItem onClick={handleMenuClose} component={Link} to="/profile">
                       <ListItemIcon><Person fontSize="small" /></ListItemIcon>
                       <ListItemText>Profile</ListItemText>
@@ -276,6 +307,7 @@ function Navbar() {
                         <Chip label={cartCount} size="small" color="primary" sx={{ ml: 'auto' }} />
                       )}
                     </MenuItem>
+                    
                     {isAdmin && (
                       <>
                         <Divider />
@@ -300,6 +332,7 @@ function Navbar() {
                         </MenuItem>
                       </>
                     )}
+                    
                     <Divider />
                     <MenuItem onClick={handleMenuClose} component={Link} to="/settings">
                       <ListItemIcon><Settings fontSize="small" /></ListItemIcon>
@@ -332,6 +365,7 @@ function Navbar() {
               )}
             </Box>
           </Toolbar>
+
           {isMobile && (
             <Box component="form" onSubmit={handleSearch} sx={{ px: 2, pb: 1 }}>
               <TextField
@@ -400,7 +434,9 @@ function Navbar() {
               </Box>
             )}
           </Box>
+          
           <Divider />
+
           <List>
             {menuItems.map((item) => (
               <ListItem
@@ -429,7 +465,9 @@ function Navbar() {
                 )}
               </ListItem>
             ))}
+
             <Divider sx={{ my: 1 }} />
+
             {isLoggedIn ? (
               <>
                 <ListItem
@@ -568,6 +606,7 @@ function Navbar() {
               </ListItem>
             )}
           </List>
+
           <Box sx={{ p: 2, mt: 'auto', bgcolor: 'grey.50' }}>
             <Typography variant="caption" color="text.secondary" display="block">
               © 2024 ShopHub
@@ -591,5 +630,4 @@ function Navbar() {
 }
 
 export default Navbar;
-               
-    
+
