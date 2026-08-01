@@ -39,6 +39,7 @@ import {
   Receipt,
   Store,
   People,
+  Image,
 } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -365,6 +366,11 @@ function Navbar() {
                           <ListItemIcon><People fontSize="small" /></ListItemIcon>
                           <ListItemText>Users</ListItemText>
                         </MenuItem>
+                        {/* ✅ Banners Admin Link */}
+                        <MenuItem onClick={handleMenuClose} component={Link} to="/admin/banners">
+                          <ListItemIcon><Image fontSize="small" /></ListItemIcon>
+                          <ListItemText>Banners</ListItemText>
+                        </MenuItem>
                       </>
                     )}
                     
@@ -428,6 +434,7 @@ function Navbar() {
         </Container>
       </AppBar>
 
+      {/* Mobile Drawer */}
       <Drawer
         anchor="left"
         open={mobileDrawerOpen}
@@ -451,7 +458,7 @@ function Navbar() {
                 gap: 1,
               }}
             >
-              🛍️ DdukaStore
+              🛍️ ShopHub
             </Typography>
             {isLoggedIn && user && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
@@ -594,6 +601,23 @@ function Navbar() {
                       <ListItemIcon><Dashboard /></ListItemIcon>
                       <ListItemText primary="Admin Dashboard" />
                     </ListItem>
+                    {/* ✅ Banners in Mobile Drawer */}
+                    <ListItem
+                      button
+                      component={Link}
+                      to="/admin/banners"
+                      onClick={() => setMobileDrawerOpen(false)}
+                      sx={{
+                        borderRadius: 2,
+                        mx: 1,
+                        '&:hover': {
+                          bgcolor: 'primary.light',
+                        },
+                      }}
+                    >
+                      <ListItemIcon><Image /></ListItemIcon>
+                      <ListItemText primary="Banners" />
+                    </ListItem>
                   </>
                 )}
                 <Divider />
@@ -644,7 +668,7 @@ function Navbar() {
 
           <Box sx={{ p: 2, mt: 'auto', bgcolor: 'grey.50' }}>
             <Typography variant="caption" color="text.secondary" display="block">
-              © 2026 DdukaStore
+              © 2024 ShopHub
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
               <Typography variant="caption" color="text.secondary">
