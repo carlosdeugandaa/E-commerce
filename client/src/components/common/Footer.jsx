@@ -101,13 +101,13 @@ function Footer() {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <LocationOn sx={{ color: 'grey.400' }} />
                 <Typography variant="body2" sx={{ color: 'grey.400' }}>
-                  123 Commerce Street, Digital City, DC 12345
+                  20028 Kampala Uganda 
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Phone sx={{ color: 'grey.400' }} />
                 <Typography variant="body2" sx={{ color: 'grey.400' }}>
-                  +1 (555) 123-4567
+                  +256755045225 +256707071929
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -124,7 +124,7 @@ function Footer() {
 
         <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
           <Typography variant="body2" sx={{ color: 'grey.400' }}>
-            © {currentYear} ShopHub. All rights reserved.
+            © {currentYear} dukkastore. All rights reserved.
           </Typography>
           <Box sx={{ display: 'flex', gap: 3 }}>
             <Link href="#" color="grey.400" underline="hover" variant="body2">
