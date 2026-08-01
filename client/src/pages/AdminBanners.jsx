@@ -38,7 +38,6 @@ import {
   Close,
   Image,
   Link as LinkIcon,
-  DragIndicator,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
@@ -71,12 +70,22 @@ function AdminBanners() {
     try {
       const result = await getBanners();
       if (result.success) {
-        setBanners(result.banners);
+        setBanners(result.banners || []);
+        if (result.banners.length === 0) {
+          console.log('No banners found');
+        }
       } else {
-        toast.error('Failed to load banners');
+        // Don't show error for empty collection
+        if (result.error?.includes('not found')) {
+          setBanners([]);
+        } else {
+          toast.error('Failed to load banners');
+        }
       }
     } catch (error) {
-      toast.error('Error loading banners');
+      console.error('Error loading banners:', error);
+      // Don't show error for first time
+      setBanners([]);
     } finally {
       setLoading(false);
     }
@@ -132,11 +141,12 @@ function AdminBanners() {
           order: banners.length + 1,
           isActive: true,
         });
-        loadBanners();
+        await loadBanners(); // Refresh the list
       } else {
         toast.error(result.error || 'Failed to save banner');
       }
     } catch (error) {
+      console.error('Error saving banner:', error);
       toast.error('Error saving banner');
     } finally {
       setSubmitting(false);
@@ -165,11 +175,12 @@ function AdminBanners() {
           toast.success('Banner deleted!');
           setDeleteDialogOpen(false);
           setBannerToDelete(null);
-          loadBanners();
+          await loadBanners();
         } else {
           toast.error('Failed to delete banner');
         }
       } catch (error) {
+        console.error('Error deleting banner:', error);
         toast.error('Error deleting banner');
       }
     }
@@ -192,7 +203,7 @@ function AdminBanners() {
 
   if (loading) {
     return (
-      <Container maxWidth="xl" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+      <Container maxWidth="xl" sx={{ py: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
         <CircularProgress />
       </Container>
     );
@@ -219,61 +230,65 @@ function AdminBanners() {
 
         {/* Banners Grid */}
         <Grid container spacing={3}>
-          {banners.map((banner, index) => (
-            <Grid item xs={12} sm={6} md={4} key={banner.id}>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-              >
-                <Card sx={{ height: '100%', position: 'relative', borderRadius: 3 }}>
-                  <CardMedia
-                    component="img"
-                    height="140"
-                    image={banner.image}
-                    alt={banner.title}
-                    sx={{ objectFit: 'cover' }}
-                  />
-                  <CardContent>
-                    <Typography variant="h6" noWrap>{banner.title}</Typography>
-                    <Typography variant="body2" color="text.secondary" noWrap>
-                      {banner.subtitle}
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-                      <Chip
-                        label={banner.isActive ? 'Active' : 'Inactive'}
+          {banners.length > 0 ? (
+            banners.map((banner, index) => (
+              <Grid item xs={12} sm={6} md={4} key={banner.id}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                >
+                  <Card sx={{ height: '100%', position: 'relative', borderRadius: 3 }}>
+                    <CardMedia
+                      component="img"
+                      height="140"
+                      image={banner.image}
+                      alt={banner.title}
+                      sx={{ objectFit: 'cover' }}
+                    />
+                    <CardContent>
+                      <Typography variant="h6" noWrap>{banner.title}</Typography>
+                      <Typography variant="body2" color="text.secondary" noWrap>
+                        {banner.subtitle}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                        <Chip
+                          label={banner.isActive ? 'Active' : 'Inactive'}
+                          size="small"
+                          color={banner.isActive ? 'success' : 'error'}
+                        />
+                        <Chip label={`Order: ${banner.order}`} size="small" variant="outlined" />
+                      </Box>
+                    </CardContent>
+                    <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 0.5 }}>
+                      <IconButton size="small" onClick={() => handleEdit(banner)} color="primary">
+                        <Edit fontSize="small" />
+                      </IconButton>
+                      <IconButton
                         size="small"
-                        color={banner.isActive ? 'success' : 'error'}
-                      />
-                      <Chip label={`Order: ${banner.order}`} size="small" variant="outlined" />
+                        onClick={() => {
+                          setBannerToDelete(banner);
+                          setDeleteDialogOpen(true);
+                        }}
+                        color="error"
+                      >
+                        <Delete fontSize="small" />
+                      </IconButton>
                     </Box>
-                  </CardContent>
-                  <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 0.5 }}>
-                    <IconButton size="small" onClick={() => handleEdit(banner)} color="primary">
-                      <Edit fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        setBannerToDelete(banner);
-                        setDeleteDialogOpen(true);
-                      }}
-                      color="error"
-                    >
-                      <Delete fontSize="small" />
-                    </IconButton>
-                  </Box>
-                </Card>
-              </motion.div>
-            </Grid>
-          ))}
-          {banners.length === 0 && (
+                  </Card>
+                </motion.div>
+              </Grid>
+            ))
+          ) : (
             <Grid item xs={12}>
               <Paper sx={{ p: 6, textAlign: 'center' }}>
                 <Typography variant="h6" color="text.secondary">No banners yet</Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                   Click "Add Banner" to create your first banner
                 </Typography>
+                <Button variant="contained" startIcon={<Add />} onClick={() => setFormOpen(true)} sx={{ mt: 2 }}>
+                  Add Banner
+                </Button>
               </Paper>
             </Grid>
           )}
