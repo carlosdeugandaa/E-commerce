@@ -152,9 +152,10 @@ export const getUserProfile = async (uid) => {
 };
 
 // ============================================
-// PRODUCT FUNCTIONS
+// PRODUCT FUNCTIONS (CRUD)
 // ============================================
 
+// Get all products (with optional filters)
 export const getProducts = async (filters = {}) => {
   try {
     let q = collection(db, 'products');
@@ -177,10 +178,12 @@ export const getProducts = async (filters = {}) => {
     snapshot.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
     return { success: true, products };
   } catch (error) {
+    console.error('Error fetching products:', error);
     return { success: false, error: error.message };
   }
 };
 
+// Get a single product by ID
 export const getProduct = async (productId) => {
   try {
     const docRef = doc(db, 'products', productId);
@@ -194,36 +197,51 @@ export const getProduct = async (productId) => {
   }
 };
 
+// Add a new product
 export const addProduct = async (productData) => {
   try {
+    // Ensure all required fields are present
+    if (!productData.name || !productData.price || !productData.category || productData.stock === undefined) {
+      return { success: false, error: 'Missing required fields' };
+    }
+
     const docRef = await addDoc(collection(db, 'products'), {
       ...productData,
       createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
       rating: 0,
       reviewCount: 0
     });
     return { success: true, id: docRef.id };
   } catch (error) {
+    console.error('Error adding product:', error);
     return { success: false, error: error.message };
   }
 };
 
+// Update an existing product
 export const updateProduct = async (productId, productData) => {
   try {
     const docRef = doc(db, 'products', productId);
-    await updateDoc(docRef, { ...productData, updatedAt: serverTimestamp() });
+    await updateDoc(docRef, {
+      ...productData,
+      updatedAt: serverTimestamp()
+    });
     return { success: true };
   } catch (error) {
+    console.error('Error updating product:', error);
     return { success: false, error: error.message };
   }
 };
 
+// Delete a product
 export const deleteProduct = async (productId) => {
   try {
     const docRef = doc(db, 'products', productId);
     await deleteDoc(docRef);
     return { success: true };
   } catch (error) {
+    console.error('Error deleting product:', error);
     return { success: false, error: error.message };
   }
 };
@@ -410,7 +428,7 @@ export const getOrder = async (orderId) => {
 export const updateOrderStatus = async (orderId, status) => {
   try {
     const docRef = doc(db, 'orders', orderId);
-    await updateDoc(docRef, { 
+    await updateDoc(docRef, {
       orderStatus: status,
       updatedAt: serverTimestamp()
     });
