@@ -25,10 +25,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Grid,
-  Divider,
-  Alert,
-  Snackbar,
+  CircularProgress,
   useMediaQuery,
   useTheme,
   Tab,
@@ -45,84 +42,11 @@ import {
   Pending,
   Cancel,
   Receipt,
-  Download,
   Close,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
-import AdminOrderDetails from './AdminOrderDetails';
-
-// Mock orders data
-const mockOrders = [
-  {
-    id: 'ORD-12345',
-    customer: 'John Doe',
-    email: 'john@example.com',
-    date: '2024-03-15',
-    total: 259.98,
-    status: 'delivered',
-    paymentMethod: 'Credit Card',
-    items: [
-      { name: 'Wireless Headphones', price: 129.99, quantity: 1, image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100&h=100&fit=crop' },
-      { name: 'Denim Jacket', price: 89.99, quantity: 2, image: 'https://images.unsplash.com/photo-1551537482-f2075a1d41f2?w=100&h=100&fit=crop' },
-    ],
-    shippingAddress: '123 Main St, New York, NY 10001',
-  },
-  {
-    id: 'ORD-12346',
-    customer: 'Jane Smith',
-    email: 'jane@example.com',
-    date: '2024-03-14',
-    total: 149.99,
-    status: 'processing',
-    paymentMethod: 'PayPal',
-    items: [
-      { name: 'Smart Watch', price: 79.99, quantity: 1, image: 'https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=100&h=100&fit=crop' },
-      { name: 'Leather Backpack', price: 159.99, quantity: 1, image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=100&h=100&fit=crop' },
-    ],
-    shippingAddress: '456 Oak Ave, Los Angeles, CA 90001',
-  },
-  {
-    id: 'ORD-12347',
-    customer: 'Bob Johnson',
-    email: 'bob@example.com',
-    date: '2024-03-14',
-    total: 89.99,
-    status: 'shipped',
-    paymentMethod: 'Credit Card',
-    items: [
-      { name: 'Skincare Set', price: 64.99, quantity: 1, image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=100&h=100&fit=crop' },
-    ],
-    shippingAddress: '789 Pine St, Chicago, IL 60601',
-  },
-  {
-    id: 'ORD-12348',
-    customer: 'Alice Brown',
-    email: 'alice@example.com',
-    date: '2024-03-13',
-    total: 59.99,
-    status: 'pending',
-    paymentMethod: 'Cash',
-    items: [
-      { name: 'Yoga Mat', price: 49.99, quantity: 1, image: 'https://images.unsplash.com/photo-1592432678016-e910b452f9a2?w=100&h=100&fit=crop' },
-    ],
-    shippingAddress: '321 Elm St, Miami, FL 33101',
-  },
-  {
-    id: 'ORD-12349',
-    customer: 'Charlie Wilson',
-    email: 'charlie@example.com',
-    date: '2024-03-12',
-    total: 199.98,
-    status: 'cancelled',
-    paymentMethod: 'Credit Card',
-    items: [
-      { name: 'Cookware Set', price: 149.99, quantity: 1, image: 'https://images.unsplash.com/photo-1584988381604-846ef78c61d0?w=100&h=100&fit=crop' },
-      { name: 'Mechanical Keyboard', price: 99.99, quantity: 1, image: 'https://images.unsplash.com/photo-1595225476474-87563907a212?w=100&h=100&fit=crop' },
-    ],
-    shippingAddress: '654 Maple Dr, Seattle, WA 98101',
-  },
-];
+import { getAllOrders, updateOrderStatus } from '../firebase/config';
 
 function AdminOrders() {
   const theme = useTheme();
@@ -137,14 +61,29 @@ function AdminOrders() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [newStatus, setNewStatus] = useState('');
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [updating, setUpdating] = useState(false);
   const itemsPerPage = 8;
 
-  useEffect(() => {
-    setTimeout(() => {
-      setOrders(mockOrders);
+  // Load orders from Firestore
+  const loadOrders = async () => {
+    setLoading(true);
+    try {
+      const result = await getAllOrders();
+      if (result.success) {
+        setOrders(result.orders || []);
+      } else {
+        toast.error('Failed to load orders');
+      }
+    } catch (error) {
+      console.error('Error loading orders:', error);
+      toast.error('Error loading orders');
+    } finally {
       setLoading(false);
-    }, 500);
+    }
+  };
+
+  useEffect(() => {
+    loadOrders();
   }, []);
 
   const getStatusColor = (status) => {
@@ -170,18 +109,16 @@ function AdminOrders() {
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = 
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.email.toLowerCase().includes(searchTerm.toLowerCase());
+      order.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.userId?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || order.orderStatus === statusFilter;
     
-    // Tab filter
     let matchesTab = true;
-    if (tabValue === 1) matchesTab = order.status === 'pending' || order.status === 'processing';
-    else if (tabValue === 2) matchesTab = order.status === 'shipped';
-    else if (tabValue === 3) matchesTab = order.status === 'delivered';
-    else if (tabValue === 4) matchesTab = order.status === 'cancelled';
+    if (tabValue === 1) matchesTab = order.orderStatus === 'pending' || order.orderStatus === 'processing';
+    else if (tabValue === 2) matchesTab = order.orderStatus === 'shipped';
+    else if (tabValue === 3) matchesTab = order.orderStatus === 'delivered';
+    else if (tabValue === 4) matchesTab = order.orderStatus === 'cancelled';
     
     return matchesSearch && matchesStatus && matchesTab;
   });
@@ -218,28 +155,29 @@ function AdminOrders() {
     setSelectedOrder(null);
   };
 
-  const handleStatusChange = (order, newStatus) => {
+  const handleStatusChange = (order, status) => {
     setSelectedOrder(order);
-    setNewStatus(newStatus);
+    setNewStatus(status);
     setStatusDialogOpen(true);
   };
 
-  const handleStatusConfirm = () => {
-    if (selectedOrder) {
-      const updatedOrders = orders.map(order =>
-        order.id === selectedOrder.id
-          ? { ...order, status: newStatus }
-          : order
-      );
-      setOrders(updatedOrders);
-      setSnackbar({
-        open: true,
-        message: `Order ${selectedOrder.id} status updated to ${newStatus}`,
-        severity: 'success',
-      });
-      setStatusDialogOpen(false);
-      setSelectedOrder(null);
-      setNewStatus('');
+  const handleStatusConfirm = async () => {
+    if (!selectedOrder) return;
+    setUpdating(true);
+    try {
+      const result = await updateOrderStatus(selectedOrder.id, newStatus);
+      if (result.success) {
+        toast.success(`Order status updated to ${newStatus}`);
+        setStatusDialogOpen(false);
+        setSelectedOrder(null);
+        loadOrders(); // Refresh orders
+      } else {
+        toast.error('Failed to update order status');
+      }
+    } catch (error) {
+      toast.error('Error updating order');
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -247,12 +185,6 @@ function AdminOrders() {
     setStatusDialogOpen(false);
     setSelectedOrder(null);
     setNewStatus('');
-  };
-
-  const handleExport = () => {
-    toast.info('Exporting orders data...', {
-      position: 'bottom-right',
-    });
   };
 
   if (loading) {
@@ -271,7 +203,6 @@ function AdminOrders() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 700 }}>
@@ -281,16 +212,8 @@ function AdminOrders() {
               {orders.length} total orders
             </Typography>
           </Box>
-          <Button
-            variant="outlined"
-            startIcon={<Download />}
-            onClick={handleExport}
-          >
-            Export Orders
-          </Button>
         </Box>
 
-        {/* Tabs */}
         <Tabs
           value={tabValue}
           onChange={handleTabChange}
@@ -305,7 +228,6 @@ function AdminOrders() {
           <Tab label="Cancelled" />
         </Tabs>
 
-        {/* Search and Filter */}
         <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
           <TextField
             size="small"
@@ -346,7 +268,6 @@ function AdminOrders() {
           </FormControl>
         </Box>
 
-        {/* Orders Table */}
         <Paper sx={{ overflow: 'hidden' }}>
           <TableContainer>
             <Table>
@@ -366,26 +287,25 @@ function AdminOrders() {
                     <TableRow key={order.id} hover>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {order.id}
+                          #{order.id?.slice(-6) || 'N/A'}
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">{order.customer}</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {order.email}
-                        </Typography>
+                        <Typography variant="body2">{order.userId || 'Unknown'}</Typography>
                       </TableCell>
-                      <TableCell align="center">{order.date}</TableCell>
+                      <TableCell align="center">
+                        {order.createdAt?.toDate?.().toLocaleDateString() || 'N/A'}
+                      </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          ${order.total.toFixed(2)}
+                          ${order.totalAmount?.toFixed(2) || '0.00'}
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
                         <Chip
-                          icon={getStatusIcon(order.status)}
-                          label={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                          color={getStatusColor(order.status)}
+                          icon={getStatusIcon(order.orderStatus)}
+                          label={order.orderStatus || 'pending'}
+                          color={getStatusColor(order.orderStatus)}
                           size="small"
                         />
                       </TableCell>
@@ -401,7 +321,7 @@ function AdminOrders() {
                           size="small"
                           onClick={() => handleStatusChange(order, 'processing')}
                           color="info"
-                          disabled={order.status === 'delivered' || order.status === 'cancelled'}
+                          disabled={order.orderStatus === 'delivered' || order.orderStatus === 'cancelled'}
                         >
                           <Edit />
                         </IconButton>
@@ -414,11 +334,6 @@ function AdminOrders() {
                       <Typography variant="body1" color="text.secondary">
                         No orders found
                       </Typography>
-                      {searchTerm && (
-                        <Button size="small" onClick={handleClearSearch} sx={{ mt: 1 }}>
-                          Clear Search
-                        </Button>
-                      )}
                     </TableCell>
                   </TableRow>
                 )}
@@ -452,40 +367,58 @@ function AdminOrders() {
       >
         <DialogTitle>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h6">
-              Order Details - {selectedOrder?.id}
-            </Typography>
-            <IconButton onClick={handleCloseDetails}>
-              <Close />
-            </IconButton>
+            <Typography variant="h6">Order #{selectedOrder?.id?.slice(-6)}</Typography>
+            <IconButton onClick={handleCloseDetails}><Close /></IconButton>
           </Box>
         </DialogTitle>
         <DialogContent dividers>
-          {selectedOrder && <AdminOrderDetails order={selectedOrder} />}
+          {selectedOrder && (
+            <Box>
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">Status</Typography>
+                  <Chip
+                    icon={getStatusIcon(selectedOrder.orderStatus)}
+                    label={selectedOrder.orderStatus || 'pending'}
+                    color={getStatusColor(selectedOrder.orderStatus)}
+                    size="small"
+                    sx={{ mt: 0.5 }}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">Total</Typography>
+                  <Typography variant="body1" fontWeight={600}>
+                    ${selectedOrder.totalAmount?.toFixed(2) || '0.00'}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography variant="caption" color="text.secondary">Customer</Typography>
+                  <Typography variant="body2">{selectedOrder.userId || 'Unknown'}</Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography variant="caption" color="text.secondary">Items</Typography>
+                  {(selectedOrder.items || []).map((item, idx) => (
+                    <Box key={idx} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5, borderBottom: '1px solid #f0f0f0' }}>
+                      <Typography variant="body2">{item.name} x {item.quantity}</Typography>
+                      <Typography variant="body2">${(item.price * item.quantity).toFixed(2)}</Typography>
+                    </Box>
+                  ))}
+                </Grid>
+              </Grid>
+            </Box>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDetails}>Close</Button>
-          <Button
-            variant="contained"
-            startIcon={<Receipt />}
-            onClick={() => toast.info('Printing invoice...')}
-          >
-            Print Invoice
-          </Button>
         </DialogActions>
       </Dialog>
 
       {/* Status Change Dialog */}
-      <Dialog
-        open={statusDialogOpen}
-        onClose={handleStatusDialogClose}
-        maxWidth="xs"
-        fullWidth
-      >
+      <Dialog open={statusDialogOpen} onClose={handleStatusDialogClose} maxWidth="xs" fullWidth>
         <DialogTitle>Update Order Status</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            Change status for order {selectedOrder?.id}
+            Change status for order #{selectedOrder?.id?.slice(-6)}
           </Typography>
           <FormControl fullWidth>
             <InputLabel>New Status</InputLabel>
@@ -504,30 +437,11 @@ function AdminOrders() {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleStatusDialogClose}>Cancel</Button>
-          <Button
-            onClick={handleStatusConfirm}
-            variant="contained"
-            disabled={!newStatus || newStatus === selectedOrder?.status}
-          >
-            Update Status
+          <Button onClick={handleStatusConfirm} variant="contained" disabled={updating}>
+            {updating ? <CircularProgress size={24} /> : 'Update Status'}
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Container>
   );
 }
