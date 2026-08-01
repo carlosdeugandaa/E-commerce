@@ -17,8 +17,6 @@ import {
   Chip,
   Stack,
   Avatar,
-  Fade,
-  Slide,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import {
@@ -30,14 +28,10 @@ import {
   ExpandLess,
   NavigateNext,
   NavigateBefore,
-  ShoppingBag,
-  TrendingUp,
-  Stars,
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import ProductGrid from '../components/products/ProductGrid';
 import { getProducts, getBanners } from '../firebase/config';
-import { categories } from '../utils/constants';
 
 function HomePage() {
   const theme = useTheme();
@@ -46,10 +40,8 @@ function HomePage() {
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [categoriesExpanded, setCategoriesExpanded] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   
-  // Check if user is admin
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -64,7 +56,6 @@ function HomePage() {
     }
   }, []);
 
-  // Auto-slide effect
   useEffect(() => {
     if (banners.length > 1) {
       const interval = setInterval(() => {
@@ -193,7 +184,6 @@ function HomePage() {
           </Box>
         )}
 
-        {/* Navigation Arrows */}
         {banners.length > 1 && (
           <>
             <IconButton
@@ -225,7 +215,6 @@ function HomePage() {
               <NavigateNext />
             </IconButton>
 
-            {/* Indicators */}
             <Box
               sx={{
                 position: 'absolute',
@@ -329,106 +318,6 @@ function HomePage() {
           </Box>
         </Container>
       )}
-
-      {/* ===== SHOP BY CATEGORY ===== */}
-      <Box sx={{ bgcolor: 'white', py: 4 }}>
-        <Container maxWidth="xl">
-          <Typography variant="h5" fontWeight={700} sx={{ mb: 3 }}>
-            Shop by Category
-          </Typography>
-
-          {/* Desktop: Show all categories */}
-          <Grid container spacing={2} sx={{ display: { xs: 'none', md: 'flex' } }}>
-            {categories.map((category) => (
-              <Grid item xs={6} sm={4} md={3} lg={2.4} key={category.id}>
-                <Card
-                  component={Link}
-                  to={`/products?category=${category.id}`}
-                  sx={{
-                    textDecoration: 'none',
-                    cursor: 'pointer',
-                    borderRadius: 3,
-                    transition: 'all 0.3s',
-                    '&:hover': { transform: 'translateY(-4px)', boxShadow: theme.shadows[4] },
-                  }}
-                >
-                  <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                    <Avatar sx={{ bgcolor: '#fff0e6', color: '#ff6b00', width: 48, height: 48, mx: 'auto', mb: 1 }}>
-                      {category.icon}
-                    </Avatar>
-                    <Typography variant="body2" fontWeight={600}>{category.name}</Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-
-          {/* Mobile: Show 4 categories, rest hidden under collapsible */}
-          <Box sx={{ display: { xs: 'block', md: 'none' } }}>
-            <Grid container spacing={2}>
-              {categories.slice(0, 4).map((category) => (
-                <Grid item xs={3} key={category.id}>
-                  <Card
-                    component={Link}
-                    to={`/products?category=${category.id}`}
-                    sx={{
-                      textDecoration: 'none',
-                      cursor: 'pointer',
-                      borderRadius: 2,
-                      '&:hover': { transform: 'translateY(-2px)', boxShadow: theme.shadows[2] },
-                    }}
-                  >
-                    <CardContent sx={{ textAlign: 'center', py: 1.5 }}>
-                      <Avatar sx={{ bgcolor: '#fff0e6', color: '#ff6b00', width: 40, height: 40, mx: 'auto', mb: 0.5 }}>
-                        {category.icon}
-                      </Avatar>
-                      <Typography variant="caption" fontWeight={600}>{category.name}</Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-
-            <Box sx={{ textAlign: 'center', mt: 2 }}>
-              <Button
-                onClick={() => setCategoriesExpanded(!categoriesExpanded)}
-                endIcon={categoriesExpanded ? <ExpandLess /> : <ExpandMore />}
-                variant="outlined"
-                size="small"
-                sx={{ borderRadius: 20 }}
-              >
-                {categoriesExpanded ? 'Show Less' : `+ ${categories.length - 4} More Categories`}
-              </Button>
-            </Box>
-
-            <Collapse in={categoriesExpanded}>
-              <Grid container spacing={2} sx={{ mt: 1 }}>
-                {categories.slice(4).map((category) => (
-                  <Grid item xs={3} key={category.id}>
-                    <Card
-                      component={Link}
-                      to={`/products?category=${category.id}`}
-                      sx={{
-                        textDecoration: 'none',
-                        cursor: 'pointer',
-                        borderRadius: 2,
-                        '&:hover': { transform: 'translateY(-2px)', boxShadow: theme.shadows[2] },
-                      }}
-                    >
-                      <CardContent sx={{ textAlign: 'center', py: 1.5 }}>
-                        <Avatar sx={{ bgcolor: '#fff0e6', color: '#ff6b00', width: 40, height: 40, mx: 'auto', mb: 0.5 }}>
-                          {category.icon}
-                        </Avatar>
-                        <Typography variant="caption" fontWeight={600}>{category.name}</Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-            </Collapse>
-          </Box>
-        </Container>
-      </Box>
 
       {/* ===== FEATURED PRODUCTS ===== */}
       <Container maxWidth="xl" sx={{ py: 4 }}>
