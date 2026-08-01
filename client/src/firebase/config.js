@@ -27,6 +27,10 @@ import {
   addDoc
 } from 'firebase/firestore';
 
+// ============================================
+// FIREBASE CONFIG
+// ============================================
+
 const firebaseConfig = {
   apiKey: "AIzaSyB1kYWgXyq0I8nkFtyb-ENMOqs58pf6RPk",
   authDomain: "e-commerce-8619f.firebaseapp.com",
@@ -152,10 +156,61 @@ export const getUserProfile = async (uid) => {
 };
 
 // ============================================
+// BANNER FUNCTIONS
+// ============================================
+
+export const getBanners = async () => {
+  try {
+    const q = query(
+      collection(db, 'banners'),
+      where('isActive', '==', true),
+      orderBy('order', 'asc')
+    );
+    const snapshot = await getDocs(q);
+    const banners = [];
+    snapshot.forEach(doc => banners.push({ id: doc.id, ...doc.data() }));
+    return { success: true, banners };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const addBanner = async (bannerData) => {
+  try {
+    const docRef = await addDoc(collection(db, 'banners'), {
+      ...bannerData,
+      createdAt: serverTimestamp()
+    });
+    return { success: true, id: docRef.id };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const updateBanner = async (bannerId, bannerData) => {
+  try {
+    const docRef = doc(db, 'banners', bannerId);
+    await updateDoc(docRef, bannerData);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const deleteBanner = async (bannerId) => {
+  try {
+    const docRef = doc(db, 'banners', bannerId);
+    await deleteDoc(docRef);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// ============================================
 // PRODUCT FUNCTIONS (CRUD)
 // ============================================
 
-// Get all products (with optional filters)
 export const getProducts = async (filters = {}) => {
   try {
     let q = collection(db, 'products');
@@ -183,7 +238,6 @@ export const getProducts = async (filters = {}) => {
   }
 };
 
-// Get a single product by ID
 export const getProduct = async (productId) => {
   try {
     const docRef = doc(db, 'products', productId);
@@ -197,10 +251,8 @@ export const getProduct = async (productId) => {
   }
 };
 
-// Add a new product
 export const addProduct = async (productData) => {
   try {
-    // Ensure all required fields are present
     if (!productData.name || !productData.price || !productData.category || productData.stock === undefined) {
       return { success: false, error: 'Missing required fields' };
     }
@@ -219,7 +271,6 @@ export const addProduct = async (productData) => {
   }
 };
 
-// Update an existing product
 export const updateProduct = async (productId, productData) => {
   try {
     const docRef = doc(db, 'products', productId);
@@ -234,7 +285,6 @@ export const updateProduct = async (productId, productData) => {
   }
 };
 
-// Delete a product
 export const deleteProduct = async (productId) => {
   try {
     const docRef = doc(db, 'products', productId);
