@@ -31,6 +31,7 @@ function AdminProductForm({ product, onSubmit, onCancel }) {
     brand: product?.brand || '',
     image: product?.image || '',
     isActive: product?.isActive !== undefined ? product.isActive : true,
+    isFeatured: product?.isFeatured || false,
   });
   const [errors, setErrors] = useState({});
 
@@ -38,7 +39,7 @@ function AdminProductForm({ product, onSubmit, onCancel }) {
     const { name, value, checked } = e.target;
     setFormData({
       ...formData,
-      [name]: name === 'isActive' ? checked : value,
+      [name]: name === 'isActive' || name === 'isFeatured' ? checked : value,
     });
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
@@ -69,18 +70,27 @@ function AdminProductForm({ product, onSubmit, onCancel }) {
 
     setLoading(true);
     
+    // Prepare product data
     const productData = {
-      ...formData,
+      name: formData.name.trim(),
+      description: formData.description.trim(),
       price: parseFloat(formData.price),
       originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : null,
       discount: parseInt(formData.discount) || 0,
+      category: formData.category,
       stock: parseInt(formData.stock),
+      brand: formData.brand.trim() || '',
+      image: formData.image.trim() || '',
+      isActive: formData.isActive !== false,
+      isFeatured: formData.isFeatured || false,
     };
 
     let result;
     if (product) {
+      // Update existing product
       result = await updateProduct(product.id, productData);
     } else {
+      // Add new product
       result = await addProduct(productData);
     }
 
@@ -88,7 +98,7 @@ function AdminProductForm({ product, onSubmit, onCancel }) {
 
     if (result.success) {
       toast.success(product ? 'Product updated successfully!' : 'Product added successfully!');
-      onSubmit();
+      onSubmit(); // Call parent to refresh list and close dialog
     } else {
       toast.error(result.error || 'Failed to save product');
     }
@@ -225,7 +235,7 @@ function AdminProductForm({ product, onSubmit, onCancel }) {
             </Box>
           )}
         </Grid>
-        <Grid item xs={12}>
+        <Grid item xs={12} sm={6}>
           <FormControlLabel
             control={
               <Switch
@@ -235,6 +245,18 @@ function AdminProductForm({ product, onSubmit, onCancel }) {
               />
             }
             label="Active Product"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <FormControlLabel
+            control={
+              <Switch
+                name="isFeatured"
+                checked={formData.isFeatured}
+                onChange={handleChange}
+              />
+            }
+            label="Featured Product"
           />
         </Grid>
         <Grid item xs={12}>
@@ -268,3 +290,4 @@ function AdminProductForm({ product, onSubmit, onCancel }) {
 }
 
 export default AdminProductForm;
+
