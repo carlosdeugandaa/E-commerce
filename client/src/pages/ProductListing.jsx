@@ -22,12 +22,19 @@ import {
   Checkbox,
   Paper,
   CircularProgress,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Collapse,
 } from '@mui/material';
 import {
   FilterList,
   Close,
   Search,
   Sort,
+  ExpandLess,
+  ExpandMore,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '../components/products/ProductCard';
@@ -41,6 +48,7 @@ function ProductListing() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(true);
 
   const [filters, setFilters] = useState({
     search: '',
@@ -136,8 +144,62 @@ function ProductListing() {
     page * productsPerPage
   );
 
+  const handleCategoryClick = (categoryId) => {
+    setFilters({ ...filters, category: categoryId });
+    setPage(1);
+  };
+
   const FilterContent = () => (
     <Box sx={{ p: isMobile ? 2 : 0 }}>
+      {/* Categories Sidebar */}
+      <Box sx={{ mb: 3 }}>
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            cursor: 'pointer',
+            mb: 1
+          }}
+          onClick={() => setCategoriesOpen(!categoriesOpen)}
+        >
+          <Typography variant="subtitle1" fontWeight={600}>Categories</Typography>
+          {categoriesOpen ? <ExpandLess /> : <ExpandMore />}
+        </Box>
+        <Collapse in={categoriesOpen}>
+          <List dense>
+            <ListItem 
+              button 
+              onClick={() => handleCategoryClick('all')}
+              sx={{ 
+                borderRadius: 1,
+                bgcolor: filters.category === 'all' ? 'primary.light' : 'transparent',
+                '&:hover': { bgcolor: 'primary.light' }
+              }}
+            >
+              <ListItemText primary="All Categories" />
+            </ListItem>
+            {categories.map((cat) => (
+              <ListItem 
+                key={cat.id}
+                button 
+                onClick={() => handleCategoryClick(cat.id)}
+                sx={{ 
+                  borderRadius: 1,
+                  bgcolor: filters.category === cat.id ? 'primary.light' : 'transparent',
+                  '&:hover': { bgcolor: 'primary.light' }
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <span style={{ fontSize: 20 }}>{cat.icon}</span>
+                </ListItemIcon>
+                <ListItemText primary={cat.name} />
+              </ListItem>
+            ))}
+          </List>
+        </Collapse>
+      </Box>
+
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h6">Filters</Typography>
         {isMobile && (
@@ -158,25 +220,6 @@ function ProductListing() {
         }}
         sx={{ mb: 3 }}
       />
-
-      <FormControl fullWidth size="small" sx={{ mb: 3 }}>
-        <InputLabel>Category</InputLabel>
-        <Select
-          value={filters.category}
-          onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-          label="Category"
-        >
-          <MenuItem value="all">All Categories</MenuItem>
-          {categories.map(cat => (
-            <MenuItem key={cat.id} value={cat.id}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span style={{ display: 'flex', fontSize: 20 }}>{cat.icon}</span>
-                {cat.name}
-              </Box>
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
 
       <Box sx={{ mb: 3 }}>
         <Typography variant="body2" gutterBottom>
@@ -303,7 +346,7 @@ function ProductListing() {
       <Grid container spacing={3}>
         {!isMobile && (
           <Grid item md={3}>
-            <Paper sx={{ p: 3, position: 'sticky', top: 100 }}>
+            <Paper sx={{ p: 2, position: 'sticky', top: 100, maxHeight: 'calc(100vh - 120px)', overflow: 'auto' }}>
               <FilterContent />
             </Paper>
           </Grid>
