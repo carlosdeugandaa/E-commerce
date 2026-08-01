@@ -165,7 +165,7 @@ function Navbar() {
                 fontSize: isMobile ? '1.25rem' : '1.5rem',
               }}
             >
-              🛍️ ShopHub
+              🛍️ DdukaStore
             </Typography>
             {!isMobile && (
               <Box
