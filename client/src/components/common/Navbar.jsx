@@ -42,7 +42,7 @@ import {
 } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { logoutUser } from '../../firebase/config';
+import { logoutUser, getCart, getWishlist } from '../../firebase/config';
 
 function Navbar() {
   const theme = useTheme();
@@ -56,27 +56,7 @@ function Navbar() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
-
-  // Load counts from localStorage
-  useEffect(() => {
-    const updateCounts = () => {
-      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-      setCartCount(cart.length);
-      const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-      setWishlistCount(wishlist.length);
-    };
-
-    updateCounts();
-    window.addEventListener('storage', updateCounts);
-    window.addEventListener('cartUpdated', updateCounts);
-    window.addEventListener('wishlistUpdated', updateCounts);
-
-    return () => {
-      window.removeEventListener('storage', updateCounts);
-      window.removeEventListener('cartUpdated', updateCounts);
-      window.removeEventListener('wishlistUpdated', updateCounts);
-    };
-  }, []);
+  const [loadingCounts, setLoadingCounts] = useState(false);
 
   // Load user from localStorage
   useEffect(() => {
@@ -104,11 +84,69 @@ function Navbar() {
 
     loadUser();
     window.addEventListener('storage', loadUser);
-
     return () => {
       window.removeEventListener('storage', loadUser);
     };
   }, []);
+
+  // Fetch cart and wishlist counts from Firestore when user logs in
+  const fetchCounts = async () => {
+    if (!user?.uid) {
+      setCartCount(0);
+      setWishlistCount(0);
+      return;
+    }
+
+    setLoadingCounts(true);
+    try {
+      const cartResult = await getCart(user.uid);
+      const wishlistResult = await getWishlist(user.uid);
+      
+      if (cartResult.success) {
+        setCartCount(cartResult.cart.length);
+      } else {
+        console.error('Failed to fetch cart:', cartResult.error);
+        setCartCount(0);
+      }
+
+      if (wishlistResult.success) {
+        setWishlistCount(wishlistResult.wishlist.length);
+      } else {
+        console.error('Failed to fetch wishlist:', wishlistResult.error);
+        setWishlistCount(0);
+      }
+    } catch (error) {
+      console.error('Error fetching counts:', error);
+      setCartCount(0);
+      setWishlistCount(0);
+    } finally {
+      setLoadingCounts(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isLoggedIn && user) {
+      fetchCounts();
+    } else {
+      setCartCount(0);
+      setWishlistCount(0);
+    }
+  }, [isLoggedIn, user]);
+
+  // Listen for cart/wishlist update events
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      if (isLoggedIn && user) fetchCounts();
+    };
+    
+    window.addEventListener('cartUpdated', handleCartUpdate);
+    window.addEventListener('wishlistUpdated', handleCartUpdate);
+    
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+      window.removeEventListener('wishlistUpdated', handleCartUpdate);
+    };
+  }, [isLoggedIn, user]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -131,20 +169,17 @@ function Navbar() {
     handleMenuClose();
     await logoutUser();
     
-    // ✅ Clear everything on logout
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('cart');
     localStorage.removeItem('wishlist');
     
-    // ✅ Reset all state
     setUser(null);
     setIsLoggedIn(false);
     setIsAdmin(false);
     setCartCount(0);
     setWishlistCount(0);
     
-    // ✅ Force immediate update
     window.dispatchEvent(new Event('storage'));
     
     toast.success('Logged out successfully!', {
@@ -416,7 +451,7 @@ function Navbar() {
                 gap: 1,
               }}
             >
-              🛍️ ShopHub
+              🛍️ DdukaStore
             </Typography>
             {isLoggedIn && user && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
@@ -609,7 +644,7 @@ function Navbar() {
 
           <Box sx={{ p: 2, mt: 'auto', bgcolor: 'grey.50' }}>
             <Typography variant="caption" color="text.secondary" display="block">
-              © 2024 ShopHub
+              © 2026 DdukaStore
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
               <Typography variant="caption" color="text.secondary">
