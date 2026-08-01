@@ -16,7 +16,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminProducts from './pages/AdminProducts';
 import AdminOrders from './pages/AdminOrders';
 import AdminUsers from './pages/AdminUsers';
-
+import AdminBanners from './pages/AdminBanners';
 // Protected Route component
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const [isAdmin, setIsAdmin] = useState(false);
