@@ -113,7 +113,7 @@ function Footer() {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Email sx={{ color: 'grey.400' }} />
                 <Typography variant="body2" sx={{ color: 'grey.400' }}>
-                  support@shophub.com
+                  carlosdeuganda
                 </Typography>
               </Box>
             </Box>
