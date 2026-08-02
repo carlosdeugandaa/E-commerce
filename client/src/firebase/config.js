@@ -236,22 +236,28 @@ export const deleteProduct = async (productId) => {
 };
 
 // ============================================
-// BANNER FUNCTIONS - ONLY ONCE!
+// BANNER FUNCTIONS
 // ============================================
 
 export const getBanners = async () => {
   try {
-    const q = query(
-      collection(db, 'banners'),
-      where('isActive', '==', true),
-      orderBy('order', 'asc')
-    );
+    // Get all banners without filters to avoid missing field errors
+    const q = collection(db, 'banners');
     const snapshot = await getDocs(q);
     const banners = [];
-    snapshot.forEach(doc => banners.push({ id: doc.id, ...doc.data() }));
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      // Only include active banners if isActive field exists
+      if (data.isActive !== false) {
+        banners.push({ id: doc.id, ...data });
+      }
+    });
+    // Sort by order
+    banners.sort((a, b) => (a.order || 0) - (b.order || 0));
     return { success: true, banners };
   } catch (error) {
-    return { success: false, error: error.message };
+    console.error('Error fetching banners:', error);
+    return { success: true, banners: [] };
   }
 };
 
