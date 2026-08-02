@@ -5,12 +5,11 @@ import {
   Typography,
   Button,
   Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+  Grid,
+  Card,
+  CardMedia,
+  CardContent,
+  CardActions,
   IconButton,
   Chip,
   TextField,
@@ -26,11 +25,7 @@ import {
   Snackbar,
   useMediaQuery,
   useTheme,
-  Grid,
-  Card,
-  CardMedia,
-  CardContent,
-  CardActions,
+  MenuItem,
 } from '@mui/material';
 import {
   Add,
@@ -39,7 +34,7 @@ import {
   Close,
   Image,
   Link as LinkIcon,
-  DragIndicator,
+  LocalOffer,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
@@ -61,11 +56,23 @@ function AdminBanners() {
     image: '',
     link: '/products',
     buttonText: 'Shop Now',
+    badge: 'HOT DEAL',
     order: 1,
     isActive: true,
   });
   const [formErrors, setFormErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+
+  const badgeOptions = [
+    'HOT DEAL',
+    '🔥 SALE',
+    '⭐ NEW',
+    '🎉 BEST SELLER',
+    '💎 PREMIUM',
+    '⚡ FLASH SALE',
+    '🎯 LIMITED OFFER',
+    '🚀 EXCLUSIVE',
+  ];
 
   const loadBanners = async () => {
     setLoading(true);
@@ -73,20 +80,9 @@ function AdminBanners() {
       const result = await getBanners();
       if (result.success) {
         setBanners(result.banners || []);
-        if (result.banners.length === 0) {
-          console.log('No banners found');
-        }
-      } else {
-        // Don't show error for empty collection
-        if (result.error?.includes('not found')) {
-          setBanners([]);
-        } else {
-          toast.error('Failed to load banners');
-        }
       }
     } catch (error) {
       console.error('Error loading banners:', error);
-      // Don't show error for first time
       setBanners([]);
     } finally {
       setLoading(false);
@@ -127,7 +123,6 @@ function AdminBanners() {
       if (editingBanner) {
         result = await updateBanner(editingBanner.id, formData);
       } else {
-        // Set order to be last if not specified
         const order = formData.order || banners.length + 1;
         result = await addBanner({ ...formData, order });
       }
@@ -142,10 +137,11 @@ function AdminBanners() {
           image: '',
           link: '/products',
           buttonText: 'Shop Now',
+          badge: 'HOT DEAL',
           order: banners.length + 1,
           isActive: true,
         });
-        await loadBanners(); // Refresh the list
+        await loadBanners();
       } else {
         toast.error(result.error || 'Failed to save banner');
       }
@@ -165,6 +161,7 @@ function AdminBanners() {
       image: banner.image || '',
       link: banner.link || '/products',
       buttonText: banner.buttonText || 'Shop Now',
+      badge: banner.badge || 'HOT DEAL',
       order: banner.order || 1,
       isActive: banner.isActive !== false,
     });
@@ -199,6 +196,7 @@ function AdminBanners() {
       image: '',
       link: '/products',
       buttonText: 'Shop Now',
+      badge: 'HOT DEAL',
       order: banners.length + 1,
       isActive: true,
     });
@@ -248,7 +246,6 @@ function AdminBanners() {
           </Button>
         </Box>
 
-        {/* Banners Grid */}
         <Grid container spacing={3}>
           <AnimatePresence>
             {banners.length > 0 ? (
@@ -268,6 +265,20 @@ function AdminBanners() {
                           image={banner.image}
                           alt={banner.title}
                           sx={{ objectFit: 'cover' }}
+                        />
+                        {/* Badge Preview */}
+                        <Chip
+                          label={banner.badge || 'HOT DEAL'}
+                          size="small"
+                          sx={{
+                            position: 'absolute',
+                            top: 8,
+                            left: 8,
+                            bgcolor: '#ff6b00',
+                            color: 'white',
+                            fontWeight: 700,
+                            fontSize: '0.65rem',
+                          }}
                         />
                         <Box
                           sx={{
@@ -299,8 +310,8 @@ function AdminBanners() {
                         <Box
                           sx={{
                             position: 'absolute',
-                            top: 8,
-                            left: 8,
+                            bottom: 8,
+                            right: 8,
                           }}
                         >
                           <Chip
@@ -416,6 +427,25 @@ function AdminBanners() {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
+                  label="Badge / Tag"
+                  name="badge"
+                  value={formData.badge}
+                  onChange={handleFormChange}
+                  select
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start"><LocalOffer /></InputAdornment>,
+                  }}
+                >
+                  {badgeOptions.map((option) => (
+                    <MenuItem key={option} value={option}>
+                      {option}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
                   label="Image URL"
                   name="image"
                   value={formData.image}
@@ -510,7 +540,6 @@ function AdminBanners() {
         <DialogContent>
           <Typography>
             Are you sure you want to delete <strong>"{bannerToDelete?.title}"</strong>?
-            This action cannot be undone.
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -528,11 +557,7 @@ function AdminBanners() {
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          variant="filled"
-        >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} variant="filled">
           {snackbar.message}
         </Alert>
       </Snackbar>
