@@ -458,7 +458,7 @@ function Navbar() {
                 gap: 1,
               }}
             >
-              🛍️ ShopHub
+              🛍️ DdukaStore
             </Typography>
             {isLoggedIn && user && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
@@ -668,7 +668,7 @@ function Navbar() {
 
           <Box sx={{ p: 2, mt: 'auto', bgcolor: 'grey.50' }}>
             <Typography variant="caption" color="text.secondary" display="block">
-              © 2024 ShopHub
+              © 2026 DdukaStore
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
               <Typography variant="caption" color="text.secondary">
