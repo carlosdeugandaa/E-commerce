@@ -112,7 +112,7 @@ function HomePage() {
 
   return (
     <Box sx={{ bgcolor: '#f5f7fa' }}>
-      {/* Hero Carousel */}
+      {/* ===== HERO CAROUSEL (IMPROVED) ===== */}
       <Box sx={{ position: 'relative', width: '100%', height: { xs: 250, sm: 350, md: 450 }, overflow: 'hidden' }}>
         {banners.length > 0 ? (
           banners.map((banner, index) => (
@@ -128,6 +128,7 @@ function HomePage() {
                 transition: 'opacity 0.8s ease-in-out',
               }}
             >
+              {/* Background Image */}
               <Box
                 component="img"
                 src={banner.image}
@@ -138,6 +139,8 @@ function HomePage() {
                   objectFit: 'cover',
                 }}
               />
+              
+              {/* Dark Overlay - IMPROVED */}
               <Box
                 sx={{
                   position: 'absolute',
@@ -145,39 +148,101 @@ function HomePage() {
                   left: 0,
                   width: '100%',
                   height: '100%',
-                  background: 'linear-gradient(45deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.1) 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: { xs: 3, md: 6 },
+                  background: 'linear-gradient(to right, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.1) 100%)',
+                }}
+              />
+              
+              {/* Content - IMPROVED POSITIONING */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: { xs: '5%', sm: '10%', md: '15%' },
+                  transform: 'translateY(-50%)',
+                  maxWidth: { xs: '90%', sm: '70%', md: '50%' },
+                  color: 'white',
                 }}
               >
-                <Box sx={{ maxWidth: 600, color: 'white' }}>
-                  <Typography variant="h2" sx={{ fontWeight: 700, fontSize: { xs: '1.5rem', sm: '2.5rem', md: '3.5rem' } }}>
-                    {banner.title}
-                  </Typography>
-                  <Typography variant="h5" sx={{ mt: 1, opacity: 0.9, fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' } }}>
-                    {banner.subtitle}
-                  </Typography>
-                  <Button
-                    component={Link}
-                    to={banner.link || '/products'}
-                    variant="contained"
-                    size="large"
-                    sx={{ mt: 3, bgcolor: '#ff6b00', '&:hover': { bgcolor: '#e55a00' } }}
-                  >
-                    {banner.buttonText || 'Shop Now'}
-                  </Button>
-                </Box>
+                {/* Badge - NEW */}
+                <Typography
+                  variant="overline"
+                  sx={{
+                    bgcolor: '#ff6b00',
+                    px: 2,
+                    py: 0.5,
+                    borderRadius: 1,
+                    display: 'inline-block',
+                    mb: 1,
+                    fontWeight: 700,
+                    fontSize: '0.7rem',
+                    letterSpacing: 1,
+                  }}
+                >
+                  {banner.badge || '🔥 HOT DEAL'}
+                </Typography>
+
+                {/* Title - WITH TEXT SHADOW */}
+                <Typography
+                  variant="h2"
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: { xs: '1.5rem', sm: '2.5rem', md: '3.5rem' },
+                    textShadow: '2px 2px 8px rgba(0,0,0,0.4)',
+                    mb: 1,
+                    lineHeight: 1.1,
+                  }}
+                >
+                  {banner.title}
+                </Typography>
+
+                {/* Subtitle - WITH TEXT SHADOW */}
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontSize: { xs: '0.9rem', sm: '1.1rem', md: '1.5rem' },
+                    opacity: 0.95,
+                    mb: 3,
+                    textShadow: '1px 1px 4px rgba(0,0,0,0.3)',
+                    fontWeight: 400,
+                  }}
+                >
+                  {banner.subtitle}
+                </Typography>
+
+                {/* Button - IMPROVED STYLING */}
+                <Button
+                  component={Link}
+                  to={banner.link || '/products'}
+                  variant="contained"
+                  size="large"
+                  sx={{
+                    bgcolor: '#ff6b00',
+                    '&:hover': { 
+                      bgcolor: '#e55a00',
+                      transform: 'scale(1.02)',
+                    },
+                    px: { xs: 3, sm: 4, md: 5 },
+                    py: { xs: 1, sm: 1.5 },
+                    borderRadius: 2,
+                    fontWeight: 700,
+                    textTransform: 'none',
+                    fontSize: { xs: '0.8rem', sm: '0.9rem', md: '1rem' },
+                    boxShadow: '0 4px 15px rgba(255,107,0,0.4)',
+                    transition: 'all 0.3s ease',
+                  }}
+                >
+                  {banner.buttonText || 'Shop Now'} →
+                </Button>
               </Box>
             </Box>
           ))
         ) : (
-          // ✅ REMOVED DEFAULT BANNER - Clean placeholder
           <Box sx={{ width: '100%', height: '100%', bgcolor: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
             <Typography variant="h5">No banners available</Typography>
           </Box>
         )}
 
+        {/* Navigation Arrows */}
         {banners.length > 1 && (
           <>
             <IconButton
@@ -190,6 +255,8 @@ function HomePage() {
                 bgcolor: 'rgba(0,0,0,0.5)',
                 color: 'white',
                 '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
+                zIndex: 10,
+                '&:hover': { transform: 'translateY(-50%) scale(1.1)' },
               }}
             >
               <NavigateBefore />
@@ -204,19 +271,23 @@ function HomePage() {
                 bgcolor: 'rgba(0,0,0,0.5)',
                 color: 'white',
                 '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
+                zIndex: 10,
+                '&:hover': { transform: 'translateY(-50%) scale(1.1)' },
               }}
             >
               <NavigateNext />
             </IconButton>
 
+            {/* Indicators - IMPROVED */}
             <Box
               sx={{
                 position: 'absolute',
-                bottom: 16,
+                bottom: 20,
                 left: '50%',
                 transform: 'translateX(-50%)',
                 display: 'flex',
-                gap: 1,
+                gap: 1.5,
+                zIndex: 10,
               }}
             >
               {banners.map((_, index) => (
@@ -224,12 +295,16 @@ function HomePage() {
                   key={index}
                   onClick={() => setCurrentSlide(index)}
                   sx={{
-                    width: 10,
+                    width: index === currentSlide ? 28 : 10,
                     height: 10,
-                    borderRadius: '50%',
+                    borderRadius: 5,
                     bgcolor: index === currentSlide ? '#ff6b00' : 'rgba(255,255,255,0.5)',
                     cursor: 'pointer',
-                    transition: 'all 0.3s',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      bgcolor: index === currentSlide ? '#ff6b00' : 'rgba(255,255,255,0.8)',
+                      transform: 'scale(1.1)',
+                    },
                   }}
                 />
               ))}
@@ -238,7 +313,7 @@ function HomePage() {
         )}
       </Box>
 
-      {/* Features Bar */}
+      {/* ===== FEATURES BAR ===== */}
       <Container maxWidth="xl" sx={{ py: 3 }}>
         <Grid container spacing={2} justifyContent="center">
           {features.map((feature, index) => (
@@ -267,7 +342,7 @@ function HomePage() {
         </Grid>
       </Container>
 
-      {/* Today's Deals */}
+      {/* ===== TODAY'S DEALS ===== */}
       {latestProducts.length > 0 && (
         <Container maxWidth="xl" sx={{ py: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -307,7 +382,7 @@ function HomePage() {
         </Container>
       )}
 
-      {/* Featured Products */}
+      {/* ===== FEATURED PRODUCTS ===== */}
       <Container maxWidth="xl" sx={{ py: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h5" fontWeight={700}>⭐ Featured Products</Typography>
@@ -327,7 +402,7 @@ function HomePage() {
         )}
       </Container>
 
-      {/* Trending Products */}
+      {/* ===== TRENDING PRODUCTS ===== */}
       {trendingProducts.length > 0 && (
         <Box sx={{ bgcolor: 'white', py: 4 }}>
           <Container maxWidth="xl">
@@ -340,7 +415,7 @@ function HomePage() {
         </Box>
       )}
 
-      {/* New Arrivals */}
+      {/* ===== NEW ARRIVALS ===== */}
       <Container maxWidth="xl" sx={{ py: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h5" fontWeight={700}>🆕 New Arrivals</Typography>
