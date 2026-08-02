@@ -112,123 +112,160 @@ function HomePage() {
 
   return (
     <Box sx={{ bgcolor: '#f5f7fa' }}>
-      {/* ===== HERO CAROUSEL (IMPROVED) ===== */}
-      <Box sx={{ position: 'relative', width: '100%', height: { xs: 250, sm: 350, md: 450 }, overflow: 'hidden' }}>
+      {/* ===== HERO CAROUSEL - FIXED LAYOUT ===== */}
+      <Box sx={{ position: 'relative', width: '100%', overflow: 'hidden' }}>
         {banners.length > 0 ? (
           banners.map((banner, index) => (
             <Box
               key={banner.id}
               sx={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
+                display: index === currentSlide ? 'block' : 'none',
                 width: '100%',
-                height: '100%',
-                opacity: index === currentSlide ? 1 : 0,
-                transition: 'opacity 0.8s ease-in-out',
               }}
             >
-              {/* Background Image */}
-              <Box
-                component="img"
-                src={banner.image}
-                alt={banner.title}
-                sx={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                }}
-              />
-              
-              {/* Dark Overlay - IMPROVED */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  background: 'linear-gradient(to right, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.1) 100%)',
-                }}
-              />
-              
-              {/* Content - IMPROVED POSITIONING */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: { xs: '5%', sm: '10%', md: '15%' },
-                  transform: 'translateY(-50%)',
-                  maxWidth: { xs: '90%', sm: '70%', md: '50%' },
-                  color: 'white',
-                }}
-              >
-                {/* Badge - NEW */}
-                <Typography
-                  variant="overline"
+              {/* Image Container with Badge */}
+              <Box sx={{ position: 'relative', width: '100%', height: { xs: 200, sm: 300, md: 400 } }}>
+                {/* Image */}
+                <Box
+                  component="img"
+                  src={banner.image}
+                  alt={banner.title}
                   sx={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                />
+                
+                {/* Badge - Top Left Corner */}
+                <Chip
+                  label={banner.badge || '🔥 HOT DEAL'}
+                  size="small"
+                  sx={{
+                    position: 'absolute',
+                    top: 16,
+                    left: 16,
                     bgcolor: '#ff6b00',
-                    px: 2,
-                    py: 0.5,
-                    borderRadius: 1,
-                    display: 'inline-block',
-                    mb: 1,
+                    color: 'white',
                     fontWeight: 700,
                     fontSize: '0.7rem',
                     letterSpacing: 1,
+                    px: 1,
+                    py: 0.5,
                   }}
-                >
-                  {banner.badge || '🔥 HOT DEAL'}
-                </Typography>
+                />
 
-                {/* Title - WITH TEXT SHADOW */}
+                {/* Navigation Arrows - Only on image */}
+                {banners.length > 1 && (
+                  <>
+                    <IconButton
+                      onClick={handlePrevSlide}
+                      sx={{
+                        position: 'absolute',
+                        left: 8,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        bgcolor: 'rgba(0,0,0,0.4)',
+                        color: 'white',
+                        '&:hover': { bgcolor: 'rgba(0,0,0,0.6)' },
+                        zIndex: 10,
+                      }}
+                    >
+                      <NavigateBefore />
+                    </IconButton>
+                    <IconButton
+                      onClick={handleNextSlide}
+                      sx={{
+                        position: 'absolute',
+                        right: 8,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        bgcolor: 'rgba(0,0,0,0.4)',
+                        color: 'white',
+                        '&:hover': { bgcolor: 'rgba(0,0,0,0.6)' },
+                        zIndex: 10,
+                      }}
+                    >
+                      <NavigateNext />
+                    </IconButton>
+                  </>
+                )}
+
+                {/* Slide Indicators - On image bottom */}
+                {banners.length > 1 && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: 12,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      display: 'flex',
+                      gap: 1.5,
+                      zIndex: 10,
+                    }}
+                  >
+                    {banners.map((_, idx) => (
+                      <Box
+                        key={idx}
+                        onClick={() => setCurrentSlide(idx)}
+                        sx={{
+                          width: idx === currentSlide ? 24 : 8,
+                          height: 8,
+                          borderRadius: 4,
+                          bgcolor: idx === currentSlide ? '#ff6b00' : 'rgba(255,255,255,0.6)',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s ease',
+                        }}
+                      />
+                    ))}
+                  </Box>
+                )}
+              </Box>
+
+              {/* Content - Below the Image */}
+              <Box
+                sx={{
+                  bgcolor: 'white',
+                  py: { xs: 2, sm: 3, md: 4 },
+                  px: { xs: 2, sm: 3, md: 4 },
+                }}
+              >
                 <Typography
-                  variant="h2"
+                  variant="h4"
                   sx={{
-                    fontWeight: 800,
-                    fontSize: { xs: '1.5rem', sm: '2.5rem', md: '3.5rem' },
-                    textShadow: '2px 2px 8px rgba(0,0,0,0.4)',
-                    mb: 1,
-                    lineHeight: 1.1,
+                    fontWeight: 700,
+                    fontSize: { xs: '1.2rem', sm: '1.5rem', md: '2rem' },
+                    mb: 0.5,
+                    color: '#1a1a2e',
                   }}
                 >
                   {banner.title}
                 </Typography>
 
-                {/* Subtitle - WITH TEXT SHADOW */}
                 <Typography
-                  variant="h5"
+                  variant="body1"
                   sx={{
-                    fontSize: { xs: '0.9rem', sm: '1.1rem', md: '1.5rem' },
-                    opacity: 0.95,
-                    mb: 3,
-                    textShadow: '1px 1px 4px rgba(0,0,0,0.3)',
-                    fontWeight: 400,
+                    fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' },
+                    color: '#666',
+                    mb: 2,
                   }}
                 >
                   {banner.subtitle}
                 </Typography>
 
-                {/* Button - IMPROVED STYLING */}
                 <Button
                   component={Link}
                   to={banner.link || '/products'}
                   variant="contained"
-                  size="large"
                   sx={{
                     bgcolor: '#ff6b00',
-                    '&:hover': { 
-                      bgcolor: '#e55a00',
-                      transform: 'scale(1.02)',
-                    },
-                    px: { xs: 3, sm: 4, md: 5 },
+                    '&:hover': { bgcolor: '#e55a00' },
+                    px: { xs: 3, sm: 4 },
                     py: { xs: 1, sm: 1.5 },
                     borderRadius: 2,
-                    fontWeight: 700,
+                    fontWeight: 600,
                     textTransform: 'none',
-                    fontSize: { xs: '0.8rem', sm: '0.9rem', md: '1rem' },
-                    boxShadow: '0 4px 15px rgba(255,107,0,0.4)',
-                    transition: 'all 0.3s ease',
+                    fontSize: { xs: '0.8rem', sm: '0.9rem' },
                   }}
                 >
                   {banner.buttonText || 'Shop Now'} →
@@ -237,79 +274,9 @@ function HomePage() {
             </Box>
           ))
         ) : (
-          <Box sx={{ width: '100%', height: '100%', bgcolor: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
+          <Box sx={{ width: '100%', height: 300, bgcolor: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
             <Typography variant="h5">No banners available</Typography>
           </Box>
-        )}
-
-        {/* Navigation Arrows */}
-        {banners.length > 1 && (
-          <>
-            <IconButton
-              onClick={handlePrevSlide}
-              sx={{
-                position: 'absolute',
-                left: 16,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                bgcolor: 'rgba(0,0,0,0.5)',
-                color: 'white',
-                '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
-                zIndex: 10,
-                '&:hover': { transform: 'translateY(-50%) scale(1.1)' },
-              }}
-            >
-              <NavigateBefore />
-            </IconButton>
-            <IconButton
-              onClick={handleNextSlide}
-              sx={{
-                position: 'absolute',
-                right: 16,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                bgcolor: 'rgba(0,0,0,0.5)',
-                color: 'white',
-                '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
-                zIndex: 10,
-                '&:hover': { transform: 'translateY(-50%) scale(1.1)' },
-              }}
-            >
-              <NavigateNext />
-            </IconButton>
-
-            {/* Indicators - IMPROVED */}
-            <Box
-              sx={{
-                position: 'absolute',
-                bottom: 20,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                display: 'flex',
-                gap: 1.5,
-                zIndex: 10,
-              }}
-            >
-              {banners.map((_, index) => (
-                <Box
-                  key={index}
-                  onClick={() => setCurrentSlide(index)}
-                  sx={{
-                    width: index === currentSlide ? 28 : 10,
-                    height: 10,
-                    borderRadius: 5,
-                    bgcolor: index === currentSlide ? '#ff6b00' : 'rgba(255,255,255,0.5)',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      bgcolor: index === currentSlide ? '#ff6b00' : 'rgba(255,255,255,0.8)',
-                      transform: 'scale(1.1)',
-                    },
-                  }}
-                />
-              ))}
-            </Box>
-          </>
         )}
       </Box>
 
