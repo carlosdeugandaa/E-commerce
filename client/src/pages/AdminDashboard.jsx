@@ -19,10 +19,7 @@ import {
   useTheme,
   useMediaQuery,
   Divider,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
+  Alert,
 } from '@mui/material';
 import {
   ShoppingBag,
@@ -34,7 +31,7 @@ import {
   Inventory,
   ShoppingCart,
   Person,
-  Settings,
+  Image,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -44,6 +41,7 @@ function AdminDashboard() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     revenue: 0,
     orders: 0,
@@ -51,23 +49,25 @@ function AdminDashboard() {
     products: 0,
   });
   const [recentOrders, setRecentOrders] = useState([]);
-  const [error, setError] = useState(false);
 
   useEffect(() => {
     const loadDashboardData = async () => {
       setLoading(true);
-      setError(false);
+      setError(null);
       try {
+        // Fetch all data in parallel
         const [productsResult, ordersResult, usersResult] = await Promise.all([
           getProducts(),
           getAllOrders(),
           getAllUsers(),
         ]);
 
-        const products = productsResult.success ? productsResult.products : [];
-        const orders = ordersResult.success ? ordersResult.orders : [];
-        const users = usersResult.success ? usersResult.users : [];
+        // Safely extract data with fallbacks
+        const products = productsResult?.success ? productsResult.products : [];
+        const orders = ordersResult?.success ? ordersResult.orders : [];
+        const users = usersResult?.success ? usersResult.users : [];
 
+        // Calculate totals
         const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
 
         setStats({
@@ -77,10 +77,14 @@ function AdminDashboard() {
           products: products.length,
         });
 
+        // Get last 5 orders
         setRecentOrders(orders.slice(0, 5));
-      } catch (error) {
-        console.error('Error loading dashboard:', error);
-        setError(true);
+      } catch (err) {
+        console.error('Error loading dashboard:', err);
+        setError(err.message || 'Failed to load dashboard data');
+        // Set fallback values so page doesn't crash
+        setStats({ revenue: 0, orders: 0, customers: 0, products: 0 });
+        setRecentOrders([]);
       } finally {
         setLoading(false);
       }
@@ -93,17 +97,15 @@ function AdminDashboard() {
     { title: 'Revenue', value: `$${stats.revenue.toLocaleString()}`, icon: <AttachMoney />, color: '#4CAF50' },
     { title: 'Orders', value: stats.orders, icon: <ShoppingBag />, color: '#2196F3' },
     { title: 'Customers', value: stats.customers, icon: <People />, color: '#FF9800' },
-    { title: 'Products', value: stats.products, icon: <Store />, color: '#9C27B0' }
-    
+    { title: 'Products', value: stats.products, icon: <Store />, color: '#9C27B0' },
   ];
 
-  // Quick action cards for admin
   const quickActions = [
     { title: 'Add Product', icon: <Add />, path: '/admin/products', color: '#4CAF50' },
     { title: 'Manage Products', icon: <Inventory />, path: '/admin/products', color: '#2196F3' },
     { title: 'View Orders', icon: <ShoppingCart />, path: '/admin/orders', color: '#FF9800' },
     { title: 'Manage Users', icon: <Person />, path: '/admin/users', color: '#9C27B0' },
-    { title: 'Manage Banners', icon: <Image />, path: '/admin/banners', color: '#E91E63' }
+    { title: 'Banners', icon: <Image />, path: '/admin/banners', color: '#E91E63' },
   ];
 
   if (loading) {
@@ -117,9 +119,15 @@ function AdminDashboard() {
   if (error) {
     return (
       <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
         <Paper sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="h6" color="error" gutterBottom>
-            Unable to load dashboard data
+            Unable to load dashboard
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Please check your Firestore collections and try again.
           </Typography>
           <Button variant="contained" sx={{ mt: 2 }} onClick={() => window.location.reload()}>
             Retry
@@ -137,7 +145,6 @@ function AdminDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          {/* Header */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
             <Box>
               <Typography variant="h4" sx={{ fontWeight: 700, color: '#1a237e' }}>
@@ -180,13 +187,13 @@ function AdminDashboard() {
             ))}
           </Grid>
 
-          {/* Quick Actions - One Click Admin Access */}
+          {/* Quick Actions */}
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: '#1a237e' }}>
             Quick Actions
           </Typography>
           <Grid container spacing={2} sx={{ mb: 4 }}>
             {quickActions.map((action, index) => (
-              <Grid item xs={6} sm={3} key={index}>
+              <Grid item xs={6} sm={4} md={2.4} key={index}>
                 <Button
                   component={Link}
                   to={action.path}
@@ -198,6 +205,7 @@ function AdminDashboard() {
                     borderRadius: 3,
                     bgcolor: action.color,
                     '&:hover': { bgcolor: action.color, opacity: 0.8 },
+                    fontSize: '0.75rem',
                   }}
                 >
                   {action.title}
