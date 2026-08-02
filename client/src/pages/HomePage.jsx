@@ -10,13 +10,10 @@ import {
   Paper,
   useTheme,
   CircularProgress,
-  Collapse,
-  IconButton,
   CardMedia,
   CardActionArea,
   Chip,
-  Stack,
-  Avatar,
+  IconButton,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import {
@@ -24,8 +21,6 @@ import {
   VerifiedUser,
   SupportAgent,
   ArrowForward,
-  ExpandMore,
-  ExpandLess,
   NavigateNext,
   NavigateBefore,
 } from '@mui/icons-material';
@@ -41,7 +36,6 @@ function HomePage() {
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
-  
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -75,7 +69,6 @@ function HomePage() {
       if (productsResult.success) {
         const allProducts = productsResult.products || [];
         const validProducts = allProducts.filter(p => p.name && typeof p.name === 'string' && typeof p.price === 'number');
-        
         setFeaturedProducts(validProducts.filter(p => p.isFeatured).slice(0, 4));
         setLatestProducts(validProducts.slice(0, 4));
         setTrendingProducts(validProducts.slice(4, 8));
@@ -119,7 +112,7 @@ function HomePage() {
 
   return (
     <Box sx={{ bgcolor: '#f5f7fa' }}>
-      {/* ===== HERO CAROUSEL ===== */}
+      {/* Hero Carousel */}
       <Box sx={{ position: 'relative', width: '100%', height: { xs: 250, sm: 350, md: 450 }, overflow: 'hidden' }}>
         {banners.length > 0 ? (
           banners.map((banner, index) => (
@@ -179,8 +172,9 @@ function HomePage() {
             </Box>
           ))
         ) : (
-          <Box sx={{ width: '100%', height: '100%', bgcolor: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-            <Typography variant="h4">Summer Sale - Up to 70% OFF</Typography>
+          // ✅ REMOVED DEFAULT BANNER - Clean placeholder
+          <Box sx={{ width: '100%', height: '100%', bgcolor: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
+            <Typography variant="h5">No banners available</Typography>
           </Box>
         )}
 
@@ -244,7 +238,7 @@ function HomePage() {
         )}
       </Box>
 
-      {/* ===== FEATURES BAR ===== */}
+      {/* Features Bar */}
       <Container maxWidth="xl" sx={{ py: 3 }}>
         <Grid container spacing={2} justifyContent="center">
           {features.map((feature, index) => (
@@ -273,16 +267,12 @@ function HomePage() {
         </Grid>
       </Container>
 
-      {/* ===== TODAY'S DEALS (Scrolling Cards) ===== */}
+      {/* Today's Deals */}
       {latestProducts.length > 0 && (
         <Container maxWidth="xl" sx={{ py: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h5" fontWeight={700}>
-              🔥 Today's Deals
-            </Typography>
-            <Button component={Link} to="/products" endIcon={<ArrowForward />} size="small">
-              View All
-            </Button>
+            <Typography variant="h5" fontWeight={700}>🔥 Today's Deals</Typography>
+            <Button component={Link} to="/products" endIcon={<ArrowForward />} size="small">View All</Button>
           </Box>
           <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 2, '&::-webkit-scrollbar': { height: 6 }, '&::-webkit-scrollbar-thumb': { bgcolor: '#ddd', borderRadius: 3 } }}>
             {latestProducts.map((product) => (
@@ -308,9 +298,7 @@ function HomePage() {
                         </Typography>
                       )}
                     </Box>
-                    {product.discount > 0 && (
-                      <Chip label={`-${product.discount}%`} size="small" color="error" sx={{ mt: 0.5 }} />
-                    )}
+                    {product.discount > 0 && <Chip label={`-${product.discount}%`} size="small" color="error" sx={{ mt: 0.5 }} />}
                   </CardContent>
                 </CardActionArea>
               </Card>
@@ -319,15 +307,11 @@ function HomePage() {
         </Container>
       )}
 
-      {/* ===== FEATURED PRODUCTS ===== */}
+      {/* Featured Products */}
       <Container maxWidth="xl" sx={{ py: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5" fontWeight={700}>
-            ⭐ Featured Products
-          </Typography>
-          <Button component={Link} to="/products" endIcon={<ArrowForward />} size="small">
-            View All
-          </Button>
+          <Typography variant="h5" fontWeight={700}>⭐ Featured Products</Typography>
+          <Button component={Link} to="/products" endIcon={<ArrowForward />} size="small">View All</Button>
         </Box>
         {featuredProducts.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4, bgcolor: 'white', borderRadius: 3 }}>
@@ -343,32 +327,24 @@ function HomePage() {
         )}
       </Container>
 
-      {/* ===== TRENDING PRODUCTS ===== */}
+      {/* Trending Products */}
       {trendingProducts.length > 0 && (
         <Box sx={{ bgcolor: 'white', py: 4 }}>
           <Container maxWidth="xl">
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Typography variant="h5" fontWeight={700}>
-                🔥 Trending Now
-              </Typography>
-              <Button component={Link} to="/products" endIcon={<ArrowForward />} size="small">
-                View All
-              </Button>
+              <Typography variant="h5" fontWeight={700}>🔥 Trending Now</Typography>
+              <Button component={Link} to="/products" endIcon={<ArrowForward />} size="small">View All</Button>
             </Box>
             <ProductGrid products={trendingProducts} />
           </Container>
         </Box>
       )}
 
-      {/* ===== NEW ARRIVALS ===== */}
+      {/* New Arrivals */}
       <Container maxWidth="xl" sx={{ py: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5" fontWeight={700}>
-            🆕 New Arrivals
-          </Typography>
-          <Button component={Link} to="/products" endIcon={<ArrowForward />} size="small">
-            View All
-          </Button>
+          <Typography variant="h5" fontWeight={700}>🆕 New Arrivals</Typography>
+          <Button component={Link} to="/products" endIcon={<ArrowForward />} size="small">View All</Button>
         </Box>
         {latestProducts.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4, bgcolor: 'white', borderRadius: 3 }}>
