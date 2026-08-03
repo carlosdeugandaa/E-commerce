@@ -77,6 +77,26 @@ function ProductDetails() {
     return () => unsubscribe();
   }, []);
 
+  // Load reviews for current product
+  const loadReviews = async (productId) => {
+    if (!productId) return;
+    setReviewLoading(true);
+    try {
+      const result = await getProductReviews(productId);
+      if (result.success) {
+        console.log('✅ Reviews loaded:', result.reviews.length);
+        setReviews(result.reviews);
+      } else {
+        console.error('Failed to load reviews:', result.error);
+        setReviews([]);
+      }
+    } catch (error) {
+      console.error('Error loading reviews:', error);
+      setReviews([]);
+    }
+    setReviewLoading(false);
+  };
+
   // Load product data from Firestore
   useEffect(() => {
     const loadProduct = async () => {
@@ -116,17 +136,6 @@ function ProductDetails() {
     }
   }, [product]);
 
-  // Load reviews for current product
-  const loadReviews = async (productId) => {
-    if (!productId) return;
-    setReviewLoading(true);
-    const result = await getProductReviews(productId);
-    if (result.success) {
-      setReviews(result.reviews);
-    }
-    setReviewLoading(false);
-  };
-
   // Handle review submission
   const handleSubmitReview = async () => {
     if (!currentUser) {
@@ -156,7 +165,11 @@ function ProductDetails() {
       toast.success('Review submitted successfully!');
       setReviewRating(0);
       setReviewComment('');
+      
+      // ✅ Force reload reviews
       await loadReviews(product.id);
+      
+      // ✅ Also reload product to update rating count
       const productResult = await getProduct(product.id);
       if (productResult.success) {
         setProduct(productResult.product);
@@ -389,7 +402,7 @@ function ProductDetails() {
             </motion.div>
           )}
 
-          {/* Reviews Tab */}
+          {/* Reviews Tab - UPDATED */}
           {tabValue === 2 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -431,7 +444,7 @@ function ProductDetails() {
 
                 {/* Review Form & List */}
                 <Grid item xs={12} md={8}>
-                  {/* Write Review - ALWAYS SHOW, but disable if not logged in */}
+                  {/* Write Review */}
                   <Paper sx={{ p: 3, mb: 3 }}>
                     <Typography variant="h6" gutterBottom>
                       {currentUser ? 'Write a Review' : 'Login to Write a Review'}
