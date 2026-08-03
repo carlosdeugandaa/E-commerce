@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Container,
@@ -25,6 +26,7 @@ import {
   ListItemText,
   ListItemAvatar,
   LinearProgress,
+  CircularProgress,
 } from '@mui/material';
 import {
   Add,
@@ -35,20 +37,20 @@ import {
   Share,
   ArrowBack,
   CheckCircle,
-  Star,
-  StarBorder,
   ThumbUp,
   ThumbDown,
   LocalShipping,
   Shield,
   Refresh,
   Payment,
+  Person,
 } from '@mui/icons-material';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import ProductCard from '../components/products/ProductCard';
-import { getProduct, getProducts } from '../firebase/config';
+import ReviewCard from '../components/products/ReviewCard';
+import { getProduct, getProducts, addReview, getProductReviews, auth } from '../firebase/config';
 
 function ProductDetails() {
   const { id } = useParams();
@@ -61,12 +63,18 @@ function ProductDetails() {
   const [quantity, setQuantity] = useState(1);
   const [isLiked, setIsLiked] = useState(false);
   const [tabValue, setTabValue] = useState(0);
-  const [ratingValue, setRatingValue] = useState(0);
-  const [ratingComment, setRatingComment] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [relatedProducts, setRelatedProducts] = useState([]);
-  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Review states
+  const [reviews, setReviews] = useState([]);
+  const [reviewLoading, setReviewLoading] = useState(true);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+  const currentUser = auth.currentUser;
 
   // Load product data from Firestore
   useEffect(() => {
@@ -85,29 +93,8 @@ function ProductDetails() {
           );
         }
 
-        // Mock reviews (you can replace with Firebase reviews later)
-        setReviews([
-          {
-            id: 1,
-            user: 'John D.',
-            rating: 5,
-            date: '2024-03-15',
-            comment: 'Amazing product! Exceeded my expectations.',
-            helpful: 12,
-            unhelpful: 1,
-            avatar: 'J',
-          },
-          {
-            id: 2,
-            user: 'Sarah M.',
-            rating: 4,
-            date: '2024-03-10',
-            comment: 'Great quality, fast shipping.',
-            helpful: 8,
-            unhelpful: 0,
-            avatar: 'S',
-          },
-        ]);
+        // Load reviews
+        await loadReviews(result.product.id);
       } else {
         navigate('/products');
         toast.error('Product not found');
@@ -128,27 +115,75 @@ function ProductDetails() {
     }
   }, [product]);
 
-  if (loading) {
-    return (
-      <Container sx={{ py: 8, textAlign: 'center' }}>
-        <Typography variant="h5">Loading...</Typography>
-      </Container>
-    );
-  }
+  // Load reviews for current product
+  const loadReviews = async (productId) => {
+    if (!productId) return;
+    setReviewLoading(true);
+    const result = await getProductReviews(productId);
+    if (result.success) {
+      setReviews(result.reviews);
+    }
+    setReviewLoading(false);
+  };
 
-  if (!product) {
-    return (
-      <Container sx={{ py: 8, textAlign: 'center' }}>
-        <Typography variant="h5">Product not found</Typography>
-      </Container>
-    );
-  }
+  // Handle review submission
+  const handleSubmitReview = async () => {
+    if (!currentUser) {
+      toast.error('Please login to leave a review');
+      return;
+    }
+    if (reviewRating === 0) {
+      toast.error('Please select a rating');
+      return;
+    }
+    if (!reviewComment.trim()) {
+      toast.error('Please write a comment');
+      return;
+    }
 
-  const discountPercentage = product.discount || 0;
-  const finalPrice = product.discountedPrice || product.price;
+    setSubmittingReview(true);
+    setReviewError('');
+
+    const result = await addReview(
+      product.id,
+      currentUser.uid,
+      currentUser.displayName || 'User',
+      reviewRating,
+      reviewComment.trim()
+    );
+
+    if (result.success) {
+      toast.success('Review submitted successfully!');
+      setReviewRating(0);
+      setReviewComment('');
+      // Reload reviews
+      await loadReviews(product.id);
+      // Reload product to update rating
+      const productResult = await getProduct(product.id);
+      if (productResult.success) {
+        setProduct(productResult.product);
+      }
+    } else {
+      toast.error(result.error || 'Failed to submit review');
+    }
+    setSubmittingReview(false);
+  };
+
+  // Handle review deletion refresh
+  const handleReviewDeleted = async () => {
+    await loadReviews(product.id);
+    // Reload product to update rating
+    const productResult = await getProduct(product.id);
+    if (productResult.success) {
+      setProduct(productResult.product);
+    }
+  };
+
+  const discountPercentage = product?.discount || 0;
+  const finalPrice = product?.discountedPrice || product?.price || 0;
   const totalPrice = finalPrice * quantity;
 
-  // Handlers
+  // Quantity handlers
   const handleQuantityChange = (type) => {
     if (type === 'increase' && quantity < product.stock) {
       setQuantity(prev => prev + 1);
@@ -193,19 +228,39 @@ function ProductDetails() {
     setSnackbar({ open: true, message: 'Link copied to clipboard!', severity: 'success' });
   };
 
-  const handleSubmitReview = () => {
-    if (ratingValue === 0) {
-      setSnackbar({ open: true, message: 'Please select a rating', severity: 'error' });
-      return;
-    }
-    setSnackbar({ open: true, message: 'Review submitted successfully!', severity: 'success' });
-    setRatingValue(0);
-    setRatingComment('');
-  };
-
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
+
+  // Calculate rating distribution
+  const ratingDistribution = [5, 4, 3, 2, 1].map(stars => {
+    const count = reviews.filter(r => r.rating === stars).length;
+    return {
+      stars,
+      count,
+      percentage: reviews.length > 0 ? (count / reviews.length) * 100 : 0,
+    };
+  });
+
+  const averageRating = reviews.length > 0 
+    ? reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length 
+    : 0;
+
+  if (loading) {
+    return (
+      <Container sx={{ py: 8, textAlign: 'center' }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
+  if (!product) {
+    return (
+      <Container sx={{ py: 8, textAlign: 'center' }}>
+        <Typography variant="h5">Product not found</Typography>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -246,7 +301,7 @@ function ProductDetails() {
             <Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>{product.name}</Typography>
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              <Rating value={product.rating} readOnly precision={0.5} />
+              <Rating value={product.rating || 0} readOnly precision={0.5} />
               <Typography variant="body2" color="text.secondary">({product.reviewCount || 0} reviews)</Typography>
               <Chip label={`${product.stock} in stock`} color={product.stock > 0 ? 'success' : 'error'} size="small" />
             </Box>
@@ -256,7 +311,7 @@ function ProductDetails() {
               {discountPercentage > 0 && (
                 <>
                   <Typography variant="h6" color="text.secondary" sx={{ textDecoration: 'line-through' }}>
-                    ${product.originalPrice.toFixed(2)}
+                    ${product.originalPrice?.toFixed(2)}
                   </Typography>
                   <Chip label={`Save ${discountPercentage}%`} color="error" size="small" />
                 </>
@@ -303,12 +358,14 @@ function ProductDetails() {
         </Tabs>
 
         <Box sx={{ mt: 3 }}>
+          {/* Description Tab */}
           {tabValue === 0 && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
               <Typography variant="body1" sx={{ mb: 2 }}>{product.description}</Typography>
             </motion.div>
           )}
 
+          {/* Specifications Tab */}
           {tabValue === 1 && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
               <Grid container spacing={2}>
@@ -336,54 +393,114 @@ function ProductDetails() {
             </motion.div>
           )}
 
+          {/* Reviews Tab */}
           {tabValue === 2 && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
               <Grid container spacing={4}>
+                {/* Rating Summary */}
                 <Grid item xs={12} md={4}>
                   <Paper sx={{ p: 3, textAlign: 'center' }}>
-                    <Typography variant="h2" sx={{ fontWeight: 700 }}>{reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : '0.0'}</Typography>
-                    <Rating value={reviews.length > 0 ? reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length : 0} readOnly precision={0.5} size="large" />
-                    <Typography variant="body2" color="text.secondary">Based on {reviews.length} reviews</Typography>
+                    <Typography variant="h2" sx={{ fontWeight: 700 }}>
+                      {reviews.length > 0 ? averageRating.toFixed(1) : '0.0'}
+                    </Typography>
+                    <Rating value={averageRating} readOnly precision={0.5} size="large" />
+                    <Typography variant="body2" color="text.secondary">
+                      Based on {reviews.length} reviews
+                    </Typography>
+                    <Divider sx={{ my: 2 }} />
+                    <Box sx={{ textAlign: 'left' }}>
+                      {ratingDistribution.map((item) => (
+                        <Box key={item.stars} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                          <Typography variant="caption" sx={{ minWidth: 20 }}>
+                            {item.stars}
+                          </Typography>
+                          <Star sx={{ fontSize: 16, color: 'warning.main' }} />
+                          <LinearProgress
+                            variant="determinate"
+                            value={item.percentage}
+                            sx={{ flex: 1, height: 8, borderRadius: 4 }}
+                          />
+                          <Typography variant="caption" color="text.secondary">
+                            {item.count}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
                   </Paper>
                 </Grid>
 
+                {/* Review Form & List */}
                 <Grid item xs={12} md={8}>
+                  {/* Write Review */}
                   <Paper sx={{ p: 3, mb: 3 }}>
-                    <Typography variant="h6" gutterBottom>Write a Review</Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                      <Rating value={ratingValue} onChange={(e, newValue) => setRatingValue(newValue)} size="large" />
-                      <Typography variant="body2" color="text.secondary">{ratingValue > 0 ? `${ratingValue} stars` : 'Select rating'}</Typography>
-                    </Box>
-                    <TextField fullWidth multiline rows={3} placeholder="Share your experience..." value={ratingComment} onChange={(e) => setRatingComment(e.target.value)} sx={{ mb: 2 }} />
-                    <Button variant="contained" onClick={handleSubmitReview} startIcon={<CheckCircle />}>Submit Review</Button>
+                    <Typography variant="h6" gutterBottom>
+                      {currentUser ? 'Write a Review' : 'Login to Write a Review'}
+                    </Typography>
+                    {!currentUser ? (
+                      <Button variant="contained" component={RouterLink} to="/login">
+                        Login to Review
+                      </Button>
+                    ) : (
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                          <Rating
+                            value={reviewRating}
+                            onChange={(e, newValue) => setReviewRating(newValue || 0)}
+                            size="large"
+                          />
+                          <Typography variant="body2" color="text.secondary">
+                            {reviewRating > 0 ? `${reviewRating} stars` : 'Select rating'}
+                          </Typography>
+                        </Box>
+                        <TextField
+                          fullWidth
+                          multiline
+                          rows={3}
+                          placeholder="Share your experience with this product..."
+                          value={reviewComment}
+                          onChange={(e) => setReviewComment(e.target.value)}
+                          sx={{ mb: 2 }}
+                        />
+                        <Button
+                          variant="contained"
+                          onClick={handleSubmitReview}
+                          disabled={submittingReview}
+                          startIcon={submittingReview ? <CircularProgress size={20} /> : <CheckCircle />}
+                        >
+                          {submittingReview ? 'Submitting...' : 'Submit Review'}
+                        </Button>
+                      </Box>
+                    )}
                   </Paper>
 
-                  <List>
-                    {reviews.map((review) => (
-                      <Paper key={review.id} sx={{ mb: 2, p: 2 }}>
-                        <ListItem alignItems="flex-start">
-                          <ListItemAvatar><Avatar sx={{ bgcolor: 'primary.main' }}>{review.avatar}</Avatar></ListItemAvatar>
-                          <ListItemText
-                            primary={
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Box><Typography variant="subtitle1" fontWeight={600}>{review.user}</Typography><Rating value={review.rating} readOnly size="small" /></Box>
-                                <Typography variant="caption" color="text.secondary">{review.date}</Typography>
-                              </Box>
-                            }
-                            secondary={
-                              <>
-                                <Typography variant="body2" sx={{ mt: 1 }}>{review.comment}</Typography>
-                                <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-                                  <Button size="small" startIcon={<ThumbUp />}>Helpful ({review.helpful})</Button>
-                                  <Button size="small" startIcon={<ThumbDown />}>Not Helpful ({review.unhelpful})</Button>
-                                </Box>
-                              </>
-                            }
-                          />
-                        </ListItem>
-                      </Paper>
-                    ))}
-                  </List>
+                  {/* Reviews List */}
+                  <Typography variant="h6" sx={{ mb: 2 }}>
+                    {reviews.length} Reviews
+                  </Typography>
+                  {reviewLoading ? (
+                    <CircularProgress />
+                  ) : reviews.length > 0 ? (
+                    reviews.map((review) => (
+                      <ReviewCard
+                        key={review.id}
+                        review={review}
+                        productId={product.id}
+                        currentUser={currentUser}
+                        isAdmin={currentUser?.role === 'admin'}
+                        onReviewDeleted={handleReviewDeleted}
+                      />
+                    ))
+                  ) : (
+                    <Paper sx={{ p: 4, textAlign: 'center' }}>
+                      <Typography variant="body1" color="text.secondary">
+                        No reviews yet. Be the first to review this product!
+                      </Typography>
+                    </Paper>
+                  )}
                 </Grid>
               </Grid>
             </motion.div>
@@ -405,8 +522,15 @@ function ProductDetails() {
         </Box>
       )}
 
-      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity}>{snackbar.message}</Alert>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity}>
+          {snackbar.message}
+        </Alert>
       </Snackbar>
     </Container>
   );
