@@ -11,7 +11,6 @@ import {
   Divider,
   Paper,
   TextField,
-  Avatar,
   useMediaQuery,
   useTheme,
   Breadcrumbs,
@@ -36,6 +35,7 @@ import {
   Shield,
   Refresh,
   Payment,
+  Star,
 } from '@mui/icons-material';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -66,11 +66,13 @@ function ProductDetails() {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   // Listen for auth state changes
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setCurrentUser(user);
+      setAuthChecked(true);
     });
     return () => unsubscribe();
   }, []);
@@ -84,7 +86,7 @@ function ProductDetails() {
         setProduct(result.product);
         setSelectedImage(0);
 
-        // Get related products (same category, different product)
+        // Get related products
         const relatedResult = await getProducts({ category: result.product.category });
         if (relatedResult.success) {
           setRelatedProducts(
@@ -154,9 +156,7 @@ function ProductDetails() {
       toast.success('Review submitted successfully!');
       setReviewRating(0);
       setReviewComment('');
-      // Reload reviews
       await loadReviews(product.id);
-      // Reload product to update rating
       const productResult = await getProduct(product.id);
       if (productResult.success) {
         setProduct(productResult.product);
@@ -170,7 +170,6 @@ function ProductDetails() {
   // Handle review deletion refresh
   const handleReviewDeleted = async () => {
     await loadReviews(product.id);
-    // Reload product to update rating
     const productResult = await getProduct(product.id);
     if (productResult.success) {
       setProduct(productResult.product);
@@ -179,7 +178,6 @@ function ProductDetails() {
 
   const discountPercentage = product?.discount || 0;
   const finalPrice = product?.discountedPrice || product?.price || 0;
-  const totalPrice = finalPrice * quantity;
 
   // Quantity handlers
   const handleQuantityChange = (type) => {
@@ -433,36 +431,34 @@ function ProductDetails() {
 
                 {/* Review Form & List */}
                 <Grid item xs={12} md={8}>
-                  {/* Write Review */}
+                  {/* Write Review - ALWAYS SHOW, but disable if not logged in */}
                   <Paper sx={{ p: 3, mb: 3 }}>
                     <Typography variant="h6" gutterBottom>
                       {currentUser ? 'Write a Review' : 'Login to Write a Review'}
                     </Typography>
-                    {!currentUser ? (
-                      <Button variant="contained" component={RouterLink} to="/login">
-                        Login to Review
-                      </Button>
-                    ) : (
-                      <Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                          <Rating
-                            value={reviewRating}
-                            onChange={(event, newValue) => setReviewRating(newValue || 0)}
-                            size="large"
-                          />
-                          <Typography variant="body2" color="text.secondary">
-                            {reviewRating > 0 ? `${reviewRating} stars` : 'Select rating'}
-                          </Typography>
-                        </Box>
-                        <TextField
-                          fullWidth
-                          multiline
-                          rows={3}
-                          placeholder="Share your experience with this product..."
-                          value={reviewComment}
-                          onChange={(e) => setReviewComment(e.target.value)}
-                          sx={{ mb: 2 }}
+                    <Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                        <Rating
+                          value={reviewRating}
+                          onChange={(event, newValue) => setReviewRating(newValue || 0)}
+                          size="large"
+                          disabled={!currentUser}
                         />
+                        <Typography variant="body2" color="text.secondary">
+                          {reviewRating > 0 ? `${reviewRating} stars` : 'Select rating'}
+                        </Typography>
+                      </Box>
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={3}
+                        placeholder={currentUser ? "Share your experience with this product..." : "Please login to leave a review"}
+                        value={reviewComment}
+                        onChange={(e) => setReviewComment(e.target.value)}
+                        disabled={!currentUser}
+                        sx={{ mb: 2 }}
+                      />
+                      {currentUser ? (
                         <Button
                           variant="contained"
                           onClick={handleSubmitReview}
@@ -471,8 +467,12 @@ function ProductDetails() {
                         >
                           {submittingReview ? 'Submitting...' : 'Submit Review'}
                         </Button>
-                      </Box>
-                    )}
+                      ) : (
+                        <Button variant="contained" component={RouterLink} to="/login">
+                          Login to Review
+                        </Button>
+                      )}
+                    </Box>
                   </Paper>
 
                   {/* Reviews List */}
@@ -535,3 +535,4 @@ function ProductDetails() {
 }
 
 export default ProductDetails;
+ 
