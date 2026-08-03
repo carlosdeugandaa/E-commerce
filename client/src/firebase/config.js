@@ -241,18 +241,15 @@ export const deleteProduct = async (productId) => {
 
 export const getBanners = async () => {
   try {
-    // Get all banners without filters to avoid missing field errors
     const q = collection(db, 'banners');
     const snapshot = await getDocs(q);
     const banners = [];
     snapshot.forEach(doc => {
       const data = doc.data();
-      // Only include active banners if isActive field exists
       if (data.isActive !== false) {
         banners.push({ id: doc.id, ...data });
       }
     });
-    // Sort by order
     banners.sort((a, b) => (a.order || 0) - (b.order || 0));
     return { success: true, banners };
   } catch (error) {
@@ -521,8 +518,9 @@ export const updateUserRole = async (userId, role) => {
     return { success: false, error: error.message };
   }
 };
+
 // ============================================
-// REVIEW FUNCTIONS
+// REVIEW FUNCTIONS (FIXED)
 // ============================================
 
 // Add a review to a product
@@ -536,11 +534,14 @@ export const addReview = async (productId, userId, userName, rating, comment) =>
       return { success: false, error: 'Rating must be between 1 and 5' };
     }
 
+    // ✅ Store productId as string to match product document ID
+    const productIdStr = String(productId);
+
     // Check if user already reviewed this product
     const reviewsRef = collection(db, 'reviews');
     const q = query(
       reviewsRef,
-      where('productId', '==', productId),
+      where('productId', '==', productIdStr),
       where('userId', '==', userId)
     );
     const snapshot = await getDocs(q);
@@ -551,7 +552,7 @@ export const addReview = async (productId, userId, userName, rating, comment) =>
 
     // Add review
     const docRef = await addDoc(collection(db, 'reviews'), {
-      productId,
+      productId: productIdStr,
       userId,
       userName,
       rating: Number(rating),
@@ -562,8 +563,10 @@ export const addReview = async (productId, userId, userName, rating, comment) =>
       helpfulUsers: [],
     });
 
+    console.log('✅ Review added with ID:', docRef.id);
+
     // Update product rating
-    await updateProductRating(productId);
+    await updateProductRating(productIdStr);
 
     return { success: true, id: docRef.id };
   } catch (error) {
@@ -575,32 +578,50 @@ export const addReview = async (productId, userId, userName, rating, comment) =>
 // Get all reviews for a product
 export const getProductReviews = async (productId) => {
   try {
-    const q = query(
-      collection(db, 'reviews'),
-      where('productId', '==', productId),
-      orderBy('createdAt', 'desc')
-    );
+    const productIdStr = String(productId);
+    console.log('🔍 Fetching reviews for productId:', productIdStr);
+
+    // ✅ Remove orderBy to avoid index requirement
+    const reviewsRef = collection(db, 'reviews');
+    const q = query(reviewsRef, where('productId', '==', productIdStr));
     const snapshot = await getDocs(q);
+    
+    console.log('📄 Found', snapshot.size, 'reviews');
+
     const reviews = [];
     snapshot.forEach(doc => {
       const data = doc.data();
-      // Format date
+      
+      // Format date safely
       let date = 'Recently';
       if (data.createdAt) {
-        const d = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
-        date = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        try {
+          const d = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+          date = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        } catch (e) {
+          date = 'Recently';
+        }
       }
+      
       reviews.push({ 
         id: doc.id, 
         ...data, 
         date,
-        // Ensure date is a Date object for display
         createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : data.createdAt
       });
     });
+
+    // Manual sort by date (newest first)
+    reviews.sort((a, b) => {
+      const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt || 0);
+      const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt || 0);
+      return dateB - dateA;
+    });
+
+    console.log('✅ Reviews loaded:', reviews.length);
     return { success: true, reviews };
   } catch (error) {
-    console.error('Error fetching reviews:', error);
+    console.error('❌ Error fetching reviews:', error);
     return { success: false, error: error.message };
   }
 };
@@ -640,9 +661,10 @@ export const deleteReview = async (reviewId, userId, isAdmin = false) => {
 // Update product rating (calculate average)
 export const updateProductRating = async (productId) => {
   try {
+    const productIdStr = String(productId);
     const q = query(
       collection(db, 'reviews'),
-      where('productId', '==', productId)
+      where('productId', '==', productIdStr)
     );
     const snapshot = await getDocs(q);
     
@@ -658,7 +680,7 @@ export const updateProductRating = async (productId) => {
     const averageRating = reviewCount > 0 ? totalRating / reviewCount : 0;
     
     // Update product
-    const productRef = doc(db, 'products', productId);
+    const productRef = doc(db, 'products', productIdStr);
     await updateDoc(productRef, {
       rating: Math.round(averageRating * 10) / 10,
       reviewCount: reviewCount,
