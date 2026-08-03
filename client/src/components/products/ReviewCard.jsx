@@ -13,16 +13,12 @@ import {
   DialogContentText,
   DialogActions,
   Chip,
-  Snackbar,
-  Alert,
   CircularProgress,
 } from '@mui/material';
 import {
   ThumbUp,
   ThumbUpOutlined,
   Delete,
-  Flag,
-  Person,
 } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import { markReviewHelpful, deleteReview } from '../../firebase/config';
