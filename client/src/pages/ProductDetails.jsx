@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Container,
@@ -21,10 +20,6 @@ import {
   Alert,
   Tabs,
   Tab,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemAvatar,
   LinearProgress,
   CircularProgress,
 } from '@mui/material';
@@ -37,13 +32,10 @@ import {
   Share,
   ArrowBack,
   CheckCircle,
-  ThumbUp,
-  ThumbDown,
   LocalShipping,
   Shield,
   Refresh,
   Payment,
-  Person,
 } from '@mui/icons-material';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -66,6 +58,7 @@ function ProductDetails() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
   
   // Review states
   const [reviews, setReviews] = useState([]);
@@ -73,8 +66,14 @@ function ProductDetails() {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
-  const [reviewError, setReviewError] = useState('');
-  const currentUser = auth.currentUser;
+
+  // Listen for auth state changes
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Load product data from Firestore
   useEffect(() => {
@@ -142,7 +141,6 @@ function ProductDetails() {
     }
 
     setSubmittingReview(true);
-    setReviewError('');
 
     const result = await addReview(
       product.id,
@@ -449,7 +447,7 @@ function ProductDetails() {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                           <Rating
                             value={reviewRating}
-                            onChange={(e, newValue) => setReviewRating(newValue || 0)}
+                            onChange={(event, newValue) => setReviewRating(newValue || 0)}
                             size="large"
                           />
                           <Typography variant="body2" color="text.secondary">
