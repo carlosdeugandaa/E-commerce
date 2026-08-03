@@ -521,3 +521,185 @@ export const updateUserRole = async (userId, role) => {
     return { success: false, error: error.message };
   }
 };
+// ============================================
+// REVIEW FUNCTIONS
+// ============================================
+
+// Add a review to a product
+export const addReview = async (productId, userId, userName, rating, comment) => {
+  try {
+    // Validate input
+    if (!productId || !userId || !rating || !comment) {
+      return { success: false, error: 'All fields are required' };
+    }
+    if (rating < 1 || rating > 5) {
+      return { success: false, error: 'Rating must be between 1 and 5' };
+    }
+
+    // Check if user already reviewed this product
+    const reviewsRef = collection(db, 'reviews');
+    const q = query(
+      reviewsRef,
+      where('productId', '==', productId),
+      where('userId', '==', userId)
+    );
+    const snapshot = await getDocs(q);
+    
+    if (!snapshot.empty) {
+      return { success: false, error: 'You have already reviewed this product' };
+    }
+
+    // Add review
+    const docRef = await addDoc(collection(db, 'reviews'), {
+      productId,
+      userId,
+      userName,
+      rating: Number(rating),
+      comment: comment.trim(),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      helpful: 0,
+      helpfulUsers: [],
+    });
+
+    // Update product rating
+    await updateProductRating(productId);
+
+    return { success: true, id: docRef.id };
+  } catch (error) {
+    console.error('Error adding review:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Get all reviews for a product
+export const getProductReviews = async (productId) => {
+  try {
+    const q = query(
+      collection(db, 'reviews'),
+      where('productId', '==', productId),
+      orderBy('createdAt', 'desc')
+    );
+    const snapshot = await getDocs(q);
+    const reviews = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      // Format date
+      let date = 'Recently';
+      if (data.createdAt) {
+        const d = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+        date = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+      }
+      reviews.push({ 
+        id: doc.id, 
+        ...data, 
+        date,
+        // Ensure date is a Date object for display
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : data.createdAt
+      });
+    });
+    return { success: true, reviews };
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Delete a review (Admin or Owner)
+export const deleteReview = async (reviewId, userId, isAdmin = false) => {
+  try {
+    const docRef = doc(db, 'reviews', reviewId);
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) {
+      return { success: false, error: 'Review not found' };
+    }
+
+    const reviewData = docSnap.data();
+    
+    // Check if user owns this review or is admin
+    if (reviewData.userId !== userId && !isAdmin) {
+      return { success: false, error: 'You are not authorized to delete this review' };
+    }
+
+    const productId = reviewData.productId;
+    
+    // Delete review
+    await deleteDoc(docRef);
+    
+    // Update product rating
+    await updateProductRating(productId);
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting review:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Update product rating (calculate average)
+export const updateProductRating = async (productId) => {
+  try {
+    const q = query(
+      collection(db, 'reviews'),
+      where('productId', '==', productId)
+    );
+    const snapshot = await getDocs(q);
+    
+    let totalRating = 0;
+    let reviewCount = 0;
+    
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      totalRating += data.rating || 0;
+      reviewCount += 1;
+    });
+    
+    const averageRating = reviewCount > 0 ? totalRating / reviewCount : 0;
+    
+    // Update product
+    const productRef = doc(db, 'products', productId);
+    await updateDoc(productRef, {
+      rating: Math.round(averageRating * 10) / 10,
+      reviewCount: reviewCount,
+      updatedAt: serverTimestamp()
+    });
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating product rating:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Mark review as helpful
+export const markReviewHelpful = async (reviewId, userId) => {
+  try {
+    const docRef = doc(db, 'reviews', reviewId);
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) {
+      return { success: false, error: 'Review not found' };
+    }
+    
+    const reviewData = docSnap.data();
+    const helpfulUsers = reviewData.helpfulUsers || [];
+    
+    // Check if user already marked as helpful
+    if (helpfulUsers.includes(userId)) {
+      return { success: false, error: 'You already marked this as helpful' };
+    }
+    
+    helpfulUsers.push(userId);
+    
+    await updateDoc(docRef, {
+      helpful: helpfulUsers.length,
+      helpfulUsers: helpfulUsers,
+    });
+    
+    return { success: true, helpful: helpfulUsers.length };
+  } catch (error) {
+    console.error('Error marking review helpful:', error);
+    return { success: false, error: error.message };
+  }
+};
