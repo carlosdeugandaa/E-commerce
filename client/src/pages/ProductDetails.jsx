@@ -66,13 +66,11 @@ function ProductDetails() {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
 
   // Listen for auth state changes
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setCurrentUser(user);
-      setAuthChecked(true);
     });
     return () => unsubscribe();
   }, []);
@@ -84,7 +82,6 @@ function ProductDetails() {
     try {
       const result = await getProductReviews(productId);
       if (result.success) {
-        console.log('✅ Reviews loaded:', result.reviews.length);
         setReviews(result.reviews);
       } else {
         console.error('Failed to load reviews:', result.error);
@@ -166,10 +163,10 @@ function ProductDetails() {
       setReviewRating(0);
       setReviewComment('');
       
-      // ✅ Force reload reviews
+      // Reload reviews
       await loadReviews(product.id);
       
-      // ✅ Also reload product to update rating count
+      // Reload product to update rating count
       const productResult = await getProduct(product.id);
       if (productResult.success) {
         setProduct(productResult.product);
@@ -402,7 +399,7 @@ function ProductDetails() {
             </motion.div>
           )}
 
-          {/* Reviews Tab - UPDATED */}
+          {/* Reviews Tab */}
           {tabValue === 2 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -444,7 +441,6 @@ function ProductDetails() {
 
                 {/* Review Form & List */}
                 <Grid item xs={12} md={8}>
-                  {/* Write Review */}
                   <Paper sx={{ p: 3, mb: 3 }}>
                     <Typography variant="h6" gutterBottom>
                       {currentUser ? 'Write a Review' : 'Login to Write a Review'}
@@ -548,4 +544,3 @@ function ProductDetails() {
 }
 
 export default ProductDetails;
- 
